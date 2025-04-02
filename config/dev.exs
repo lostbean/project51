@@ -1,8 +1,8 @@
 import Config
 
 # Configure your database
-config :area51, Area51.Repo,
-  database: Path.expand("../area51_dev.db", __DIR__),
+config :area51_data, Area51Data.Repo,
+  database: Path.expand("../area51_data_dev.db", __DIR__),
   pool_size: 5,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true

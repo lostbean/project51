@@ -32,7 +32,7 @@ defmodule Area51Web.ConnCase do
   end
 
   setup tags do
-    Area51.DataCase.setup_sandbox(tags)
+    Area51Data.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

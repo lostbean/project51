@@ -11,10 +11,10 @@ if config_env() == :prod do
     System.get_env("DATABASE_PATH") ||
       raise """
       environment variable DATABASE_PATH is missing.
-      For example: /etc/area51/area51.db
+      For example: /etc/area51_data/area51_data.db
       """
 
-  config :area51, Area51.Repo,
+  config :area51_data, Area51Data.Repo,
     database: database_path,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
 

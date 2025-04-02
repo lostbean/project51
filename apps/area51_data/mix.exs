@@ -1,9 +1,9 @@
-defmodule Area51.MixProject do
+defmodule Area51Data.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :area51,
+      app: :area51_data,
       version: "0.1.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -22,7 +22,7 @@ defmodule Area51.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Area51.Application, []},
+      mod: {Area51Data.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

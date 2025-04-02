@@ -5,8 +5,8 @@ import Config
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-config :area51, Area51.Repo,
-  database: Path.expand("../area51_test.db", __DIR__),
+config :area51_data, Area51Data.Repo,
+  database: Path.expand("../area51_data_test.db", __DIR__),
   pool_size: 5,
   pool: Ecto.Adapters.SQL.Sandbox
 

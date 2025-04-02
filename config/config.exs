@@ -10,11 +10,11 @@
 import Config
 
 # Configure Mix tasks and generators
-config :area51,
-  ecto_repos: [Area51.Repo]
+config :area51_data,
+  ecto_repos: [Area51Data.Repo]
 
 config :area51_web,
-  ecto_repos: [Area51.Repo],
+  ecto_repos: [Area51Data.Repo],
   generators: [context_app: :area51]
 
 # Configures the endpoint
@@ -25,7 +25,7 @@ config :area51_web, Area51Web.Endpoint,
     formats: [json: Area51Web.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Area51.PubSub,
+  pubsub_server: Area51Data.PubSub,
   live_view: [signing_salt: "2ZG5S4yv"]
 
 # Configures Elixir's Logger

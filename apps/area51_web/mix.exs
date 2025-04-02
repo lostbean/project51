@@ -42,7 +42,9 @@ defmodule Area51Web.MixProject do
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.26"},
-      {:area51, in_umbrella: true},
+      {:area51_data, in_umbrella: true},
+      {:area51_core, in_umbrella: true},
+      {:area51_llm, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"}
     ]

@@ -7,7 +7,18 @@ defmodule Area51.Umbrella.MixProject do
       version: "0.1.0",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      umbrella: [
+        apps: [:area51_core, :area51_data, :area51_llm, :area51_web]
+      ]
+    ]
+  end
+
+  # Run "mix help compile.app" to learn about applications.
+  def application do
+    [
+      mod: {Area51Web.Application},
+      extra_applications: [:logger]
     ]
   end
 

@@ -1,6 +1,6 @@
-defmodule Area51 do
+defmodule Area51Data do
   @moduledoc """
-  Area51 keeps the contexts that define your domain
+  Area51Data keeps the contexts that define your domain
   and business logic.
 
   Contexts are also responsible for managing your data, regardless
