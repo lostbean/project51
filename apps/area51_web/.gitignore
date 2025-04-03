@@ -29,3 +29,8 @@ area51_web-*.tar
 *.db
 *.db-*
 
+# NPM installs
+/assets/node_modules/
+
+# generated JS assets
+/priv/static/assets/

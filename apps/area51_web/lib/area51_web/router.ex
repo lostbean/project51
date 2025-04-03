@@ -1,12 +1,26 @@
 defmodule Area51Web.Router do
   use Area51Web, :router
 
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_flash
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
 
   scope "/api", Area51Web do
     pipe_through :api
+  end
+
+  scope "/", Area51Web do
+    pipe_through :browser
+
+    get "/", PageController, :index
   end
 
   # Enable LiveDashboard in development

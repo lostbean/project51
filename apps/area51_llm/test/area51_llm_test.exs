@@ -1,8 +1,8 @@
-defmodule Area51LlmTest do
+defmodule Area51LLMTest do
   use ExUnit.Case
-  doctest Area51Llm
+  doctest Area51LLM.Agent
 
   test "greets the world" do
-    assert Area51Llm.hello() == :world
+    assert {:ok, _} = Area51LLM.Agent.generate_narrative("Hey")
   end
 end

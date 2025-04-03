@@ -21,7 +21,9 @@ config :area51_web, Area51Web.Endpoint,
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "o68EN09h0FHarQnGTJuczxgN6atK3NSJ6Vb5j3pPY/x8CqvNk+0c8evPzSa7t372",
-  watchers: []
+  watchers: [
+    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
+  ]
 
 # ## SSL Support
 #

@@ -33,6 +33,23 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+# Configure LiveState
+config :live_state,
+  otp_app: :area51_web
+
+# Configure CORS for LiveState (adjust as needed)
+config :cors_plug,
+  origin: "*",
+  methods: [:get, :post, :put, :delete, :options],
+  headers: ["content-type"]
+
+config :esbuild,
+  version: "0.18.6",
+  default: [
+    args: ~w(js/app.tsx --bundle --target=es2017 --outdir=../priv/static/assets),
+    cd: Path.expand("../apps/area51_web/assets", __DIR__)
+  ]
+
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
