@@ -4,7 +4,8 @@ defmodule Area51Core.GameState do
   @type t() :: %__MODULE__{
           game_session: Area51Core.GameSession.t(),
           user_id: integer(),
-          username: String.t()
+          username: String.t(),
+          clues: list(String.t())
         }
-  defstruct user_id: nil, game_session: %Area51Core.GameSession{}, username: nil
+  defstruct user_id: nil, game_session: %Area51Core.GameSession{}, username: nil, clues: []
 end

@@ -25,7 +25,8 @@ defmodule Area51LLM.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:magus, "~> 0.2.0"}
+      {:magus, "~> 0.2.0"},
+      {:langchain, "~> 0.3.2"}
     ]
   end
 end

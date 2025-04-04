@@ -1,12 +1,19 @@
 defmodule Area51LLM.Agent do
-  def generate_narrative(_prompt) do
-    # Replace this with your actual Magus library usage
-    # Example (conceptual):
-    # Magus.Completion.create(prompt: prompt, model: "your_llm_model")
-    if true do
-      {:ok, "The investigation continues..."}
-    else
-      {:error, "Oops!"}
-    end
+  @moduledoc """
+  Main facade module for LLM agents used in the Area 51 investigation game
+  """
+
+  @doc """
+  Generate a narrative response based on the current game state and player input
+  """
+  def generate_narrative(narrative, player_input, username) do
+    Area51LLM.InvestigationAgent.generate_narrative(narrative, player_input, username)
+  end
+
+  @doc """
+  Generate a new mystery for an Area 51 investigation
+  """
+  def generate_mystery() do
+    Area51LLM.MysteryAgent.generate_mystery()
   end
 end

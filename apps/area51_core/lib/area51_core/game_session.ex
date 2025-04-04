@@ -3,7 +3,9 @@ defmodule Area51Core.GameSession do
   @derive Jason.Encoder
   @type t() :: %__MODULE__{
           narrative: String.t(),
-          id: integer()
+          id: integer(),
+          title: String.t(),
+          description: String.t()
         }
-  defstruct [:narrative, :id]
+  defstruct [:narrative, :id, :title, :description]
 end
