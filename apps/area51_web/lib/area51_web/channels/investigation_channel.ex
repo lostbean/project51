@@ -24,7 +24,6 @@ defmodule Area51Web.InvestigationChannel do
           case Agent.generate_mystery() do
             {:ok, mystery_data} ->
               # Create session with the mystery data
-              IO.inspect(mystery_data, label: "fooooo")
               Area51Data.GameSession.fetch_or_create_new_game_session(session_id, mystery_data)
 
             {:error, reason} ->
@@ -40,15 +39,10 @@ defmodule Area51Web.InvestigationChannel do
     clues = Area51Data.Clue.get_clues_for_session(session_id)
 
     state = %GameState{
-      game_session: %Area51Core.GameSession{
-        narrative: game_session.narrative,
-        id: game_session.id,
-        title: game_session.title,
-        description: game_session.description
-      },
       user_id: socket.assigns.user_id,
       username: socket.assigns.username,
-      clues: clues |> Enum.map(&(&1.content))
+      game_session: Area51Data.GameSession.data_to_core(game_session),
+      clues: clues |> Enum.map(&Area51Data.Clue.data_to_core/1)
     }
 
     {:ok, state, socket}
@@ -86,17 +80,18 @@ defmodule Area51Web.InvestigationChannel do
         Area51Data.GameSession.update_narrative(game_session.id, updated_narrative)
 
         # Store any clues that were found
-        new_clues = []
-
-        if length(clues) > 0 do
-          new_clues =
+        db_clues =
+          if length(clues) > 0 do
             Enum.map(clues, fn clue ->
               Area51Data.Clue.add_clue(game_session.id, clue["content"])
+              |> Area51Data.Clue.data_to_core()
             end)
-        end
+          else
+            []
+          end
 
         # Update clues in game state
-        updated_clues = state.clues ++ new_clues
+        updated_clues = state.clues ++ db_clues
 
         {:noreply, %{state | game_session: new_game_session, clues: updated_clues}}
 

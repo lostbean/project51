@@ -40,7 +40,8 @@ defmodule Area51Data.MixProject do
       {:phoenix_pubsub, "~> 2.1"},
       {:ecto_sql, "~> 3.10"},
       {:ecto_sqlite3, ">= 0.0.0"},
-      {:jason, "~> 1.2"}
+      {:jason, "~> 1.2"},
+      {:area51_core, in_umbrella: true}
     ]
   end
 

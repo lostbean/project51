@@ -1,23 +1,5 @@
-import LiveState from "phx-live-state";
-import React, { useState, useEffect } from "react";
-
-const useLiveState = (liveState: LiveState, initialState: any) => {
-  const [state, setState] = useState(initialState);
-  useEffect(() => {
-    liveState.connect();
-    const handleStateChange = ({ detail: { state } }) => setState(state);
-    liveState.addEventListener("livestate-change", handleStateChange);
-    return () => {
-      liveState.removeEventListener("livestate-change", handleStateChange);
-    };
-  });
-
-  const pushEvent = (event, payload) => {
-    liveState.pushEvent(event, payload);
-  };
-
-  return [state, pushEvent];
-};
+import React, { useState } from "react";
+import { useLiveState } from "../react_live_state";
 
 const Game = ({ socket, sessionId }) => {
   const [input, setInput] = useState("");
@@ -36,9 +18,25 @@ const Game = ({ socket, sessionId }) => {
     narrative = state.game_session.narrative;
   }
 
+  let title = "Area 51 Investigation";
+  let description = "";
+  if (state.game_session) {
+    if (state.game_session.title) {
+      title = state.game_session.title;
+    }
+    if (state.game_session.description) {
+      description = state.game_session.description;
+    }
+  }
+
   return (
     <div>
-      <h1>Area 51 Investigation: Session {sessionId}</h1>
+      <h1>{title}</h1>
+      {description && (
+        <p>
+          <em>{description}</em>
+        </p>
+      )}
       <div
         style={{
           border: "1px solid #ccc",
@@ -57,6 +55,17 @@ const Game = ({ socket, sessionId }) => {
         style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
       />
       <button onClick={onButtonClick}>Submit</button>
+
+      {state.clues && state.clues.length > 0 && (
+        <div className="clues-panel">
+          <h3>Discovered Clues</h3>
+          <ul>
+            {state.clues.map((clue, index) => (
+              <li key={index}>{clue.content}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

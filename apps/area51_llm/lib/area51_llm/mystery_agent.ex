@@ -1,5 +1,5 @@
 defmodule Area51LLM.MysteryAgent do
-  alias LangChain.Message
+  # Core dependencies
   alias Magus.GraphAgent
   alias Magus.AgentChain
   alias LangChain.PromptTemplate
@@ -16,12 +16,15 @@ defmodule Area51LLM.MysteryAgent do
   @doc """
   Initialize the mystery generator agent
   """
-  def init_mystery_generator_agent do
+  def init_mystery_generator_agent(topic \\ nil) do
+    # If topic is provided, use it as the mystery type, otherwise select random type
+    mystery_type = if is_nil(topic) or topic == "", do: Enum.random(@mystery_types), else: topic
+
     %GraphAgent{
       name: "Area51 Mystery Generator",
       final_output_property: nil,
       initial_state: %{
-        mystery_type: Enum.random(@mystery_types),
+        mystery_type: mystery_type,
         mystery_title: nil,
         mystery_description: nil,
         solution: nil,
@@ -38,7 +41,14 @@ defmodule Area51LLM.MysteryAgent do
   Generate a new mystery for an Area 51 investigation
   """
   def generate_mystery() do
-    init_mystery_generator_agent()
+    generate_mystery_with_topic(nil)
+  end
+
+  @doc """
+  Generate a new mystery for an Area 51 investigation with a specific topic
+  """
+  def generate_mystery_with_topic(topic) do
+    init_mystery_generator_agent(topic)
     |> Magus.AgentExecutorLite.run()
     |> case do
       %{
@@ -59,6 +69,9 @@ defmodule Area51LLM.MysteryAgent do
 
       {:error, reason} ->
         {:error, reason}
+
+      _ ->
+        {:error, "Error generating mystery with topic: #{topic}"}
     end
   end
 

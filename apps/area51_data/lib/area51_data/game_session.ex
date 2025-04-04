@@ -1,7 +1,7 @@
 defmodule Area51Data.GameSession do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
+  # Using Repo directly for operations
 
   alias Area51Data.Repo
 
@@ -60,6 +60,21 @@ defmodule Area51Data.GameSession do
   end
 
   @doc """
+  Get a formatted list of game sessions for UI display
+  """
+  def list_sessions_for_ui do
+    Repo.all(Area51Data.GameSession)
+    |> Enum.map(fn session ->
+      %{
+        id: session.id,
+        title: session.title || "Untitled Investigation",
+        description: session.description || "No description available",
+        created_at: session.inserted_at
+      }
+    end)
+  end
+
+  @doc """
   Get a specific game session by ID
   """
   def get_game_session(id) do
@@ -73,13 +88,22 @@ defmodule Area51Data.GameSession do
     %Area51Data.GameSession{}
     |> cast(
       %{
-        narrative: mystery_data["starting_narrative"],
-        title: mystery_data["title"],
-        description: mystery_data["description"],
-        solution: mystery_data["solution"]
+        narrative: mystery_data.starting_narrative,
+        title: mystery_data.title,
+        description: mystery_data.description,
+        solution: mystery_data.solution
       },
       [:narrative, :title, :description, :solution]
     )
     |> Repo.insert!()
+  end
+
+  def data_to_core(%Area51Data.GameSession{} = game_session) do
+    %Area51Core.GameSession{
+      narrative: game_session.narrative,
+      id: game_session.id,
+      title: game_session.title,
+      description: game_session.description
+    }
   end
 end

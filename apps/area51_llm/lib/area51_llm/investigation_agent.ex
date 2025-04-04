@@ -1,5 +1,5 @@
 defmodule Area51LLM.InvestigationAgent do
-  alias LangChain.Message
+  # Core dependencies
   alias Magus.GraphAgent
   alias Magus.AgentChain
   alias LangChain.PromptTemplate

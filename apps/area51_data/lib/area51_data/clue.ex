@@ -1,7 +1,7 @@
 defmodule Area51Data.Clue do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
+  import Ecto.Query, only: [from: 2]
 
   alias Area51Data.Repo
 
@@ -34,5 +34,11 @@ defmodule Area51Data.Clue do
   """
   def get_clues_for_session(game_session_id) do
     Repo.all(from c in Area51Data.Clue, where: c.game_session_id == ^game_session_id)
+  end
+
+  def data_to_core(%Area51Data.Clue{} = clue) do
+    %Area51Core.Clue{
+      content: clue.content
+    }
   end
 end
