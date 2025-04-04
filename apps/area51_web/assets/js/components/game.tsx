@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLiveState } from "../react_live_state";
 
-const Game = ({ socket, sessionId }) => {
+const Game = ({ socket, sessionId, onBackToList }) => {
   const [input, setInput] = useState("");
   const [state, pushEvent] = useLiveState(socket, {});
 
@@ -31,7 +31,18 @@ const Game = ({ socket, sessionId }) => {
 
   return (
     <div>
-      <h1>{title}</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h1>{title}</h1>
+        <button onClick={onBackToList} style={{ padding: "8px 12px" }}>
+          Back to Sessions
+        </button>
+      </div>
       {description && (
         <p>
           <em>{description}</em>
