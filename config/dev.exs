@@ -22,7 +22,7 @@ config :area51_web, Area51Web.Endpoint,
   debug_errors: true,
   secret_key_base: "o68EN09h0FHarQnGTJuczxgN6atK3NSJ6Vb5j3pPY/x8CqvNk+0c8evPzSa7t372",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
+    node: ["build.js", "--watch", cd: Path.expand("../apps/area51_web/assets", __DIR__)]
   ]
 
 # ## SSL Support

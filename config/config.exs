@@ -60,9 +60,9 @@ config :ueberauth, Ueberauth,
   ]
 
 config :ueberauth, Ueberauth.Strategy.Auth0.OAuth,
-  domain: System.get_env("AUTH0_DOMAIN") || "area51-investigation.us.auth0.com",
-  client_id: System.get_env("AUTH0_CLIENT_ID") || "your_client_id",
-  client_secret: System.get_env("AUTH0_CLIENT_SECRET") || "your_client_secret"
+  domain: System.get_env("APP_AUTH0_DOMAIN") || "MISSING_APP_AUTH0_DOMAIN",
+  client_id: System.get_env("APP_AUTH0_CLIENT_ID") || "MISSING_APP_AUTH0_CLIENT_ID",
+  client_secret: System.get_env("APP_AUTH0_CLIENT_SECRET") || "MISSING_APP_AUTH0_CLIENT_SECRET"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
