@@ -18,6 +18,7 @@ import {
   HStack,
   Icon,
 } from "@chakra-ui/react";
+import UserMenu from './user-menu';
 
 // Import components from their specific packages to avoid import issues
 import { useToast } from "@chakra-ui/react";
@@ -124,6 +125,9 @@ const SessionList = ({ socket, onSessionSelect, recentSessions = [] }) => {
 
   return (
     <Container maxW="container.xl" py={8}>
+      <Box textAlign="right" mb={4}>
+        <UserMenu />
+      </Box>
       <Box
         textAlign="center"
         mb={8}

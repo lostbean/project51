@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import Game from "./components/game";
 import SessionList from "./components/session_list";
-import { ChakraProvider, extendTheme } from "@chakra-ui/react";
+import { ChakraProvider, extendTheme, Center, Spinner } from "@chakra-ui/react";
+import { Auth0Provider51 } from "./auth/auth-provider";
+import { useAuth } from "./auth/use-auth";
+import { ProtectedRoute } from "./auth/protected-route";
 
 import LiveState from "phx-live-state";
 
@@ -257,6 +260,36 @@ const theme = extendTheme({
   },
 });
 
+// Session List Container that handles LiveState creation
+const SessionListContainer = ({
+  createLiveState,
+  onSessionSelect,
+  recentSessions,
+}) => {
+  const liveState = createLiveState("session_list");
+
+  return (
+    <SessionList
+      socket={liveState}
+      onSessionSelect={onSessionSelect}
+      recentSessions={recentSessions}
+    />
+  );
+};
+
+// Game Container that handles LiveState creation
+const GameContainer = ({ createLiveState, sessionId, onBackToList }) => {
+  const liveState = createLiveState(`investigation:${sessionId}`);
+
+  return (
+    <Game
+      socket={liveState}
+      sessionId={sessionId}
+      onBackToList={onBackToList}
+    />
+  );
+};
+
 const App = () => {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [recentSessions, setRecentSessions] = useState<number[]>(() => {
@@ -264,6 +297,27 @@ const App = () => {
     const storedSessions = localStorage.getItem("recentSessions");
     return storedSessions ? JSON.parse(storedSessions) : [];
   });
+  const { user, isAuthenticated } = useAuth();
+
+  // Function to create a LiveState connection with user data
+  const createLiveState = (topic: string) => {
+    let params = {};
+
+    // Only add the user data if the user is authenticated
+    if (isAuthenticated && user) {
+      params = {
+        user_id: user.id,
+        username: user.name,
+        avatar: user.avatar || "",
+      };
+    }
+
+    return new LiveState({
+      topic,
+      url: "ws://localhost:4000/socket",
+      params,
+    });
+  };
 
   // When a session is selected, create a new LiveState connection and switch to game mode
   const handleSessionSelect = (sessionId: number | null) => {
@@ -288,27 +342,18 @@ const App = () => {
 
   // If no session is selected, show the session list
   if (currentSessionId === null) {
-    const liveState = new LiveState({
-      topic: "session_list",
-      url: "ws://localhost:4000/socket",
-    });
     return (
-      <SessionList
-        socket={liveState}
+      <SessionListContainer
+        createLiveState={createLiveState}
         onSessionSelect={handleSessionSelect}
         recentSessions={recentSessions}
       />
     );
   } else {
     // Otherwise show the game with the selected session
-    const liveState = new LiveState({
-      topic: `investigation:${currentSessionId}`,
-      url: "ws://localhost:4000/socket",
-    });
-
     return (
-      <Game
-        socket={liveState}
+      <GameContainer
+        createLiveState={createLiveState}
         sessionId={currentSessionId}
         onBackToList={handleBackToList}
       />
@@ -319,7 +364,11 @@ const App = () => {
 const rootElement = document.getElementById("root");
 const root = createRoot(rootElement!);
 root.render(
-  <ChakraProvider theme={theme}>
-    <App />
-  </ChakraProvider>,
+  <Auth0Provider51>
+    <ProtectedRoute>
+      <ChakraProvider theme={theme}>
+        <App />
+      </ChakraProvider>
+    </ProtectedRoute>
+  </Auth0Provider51>,
 );

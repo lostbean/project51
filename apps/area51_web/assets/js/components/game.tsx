@@ -20,6 +20,7 @@ import {
   Tooltip,
   SimpleGrid,
 } from "@chakra-ui/react";
+import UserMenu from "./user-menu";
 
 // Import components from their specific packages to avoid import issues
 import { Divider } from "@chakra-ui/react";
@@ -147,16 +148,19 @@ const Game = ({ socket, sessionId, onBackToList }) => {
         <Heading as="h1" size="xl" color="brand.500">
           {title}
         </Heading>
-        <Tooltip label="View investigation details">
-          <IconButton
-            icon={<FiInfo />}
-            onClick={onOpen}
-            aria-label="View details"
-            variant="outline"
-            colorScheme="whiteAlpha"
-            size="md"
-          />
-        </Tooltip>
+        <HStack spacing={3}>
+          <UserMenu />
+          <Tooltip label="View investigation details">
+            <IconButton
+              icon={<FiInfo />}
+              onClick={onOpen}
+              aria-label="View details"
+              variant="outline"
+              colorScheme="whiteAlpha"
+              size="md"
+            />
+          </Tooltip>
+        </HStack>
       </HStack>
 
       {description && (
@@ -648,4 +652,3 @@ const Game = ({ socket, sessionId, onBackToList }) => {
 };
 
 export default Game;
-

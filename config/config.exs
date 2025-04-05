@@ -53,6 +53,17 @@ config :esbuild,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Configure Uberauth and Auth0
+config :ueberauth, Ueberauth,
+  providers: [
+    auth0: {Ueberauth.Strategy.Auth0, []}
+  ]
+
+config :ueberauth, Ueberauth.Strategy.Auth0.OAuth,
+  domain: System.get_env("AUTH0_DOMAIN") || "area51-investigation.us.auth0.com",
+  client_id: System.get_env("AUTH0_CLIENT_ID") || "your_client_id",
+  client_secret: System.get_env("AUTH0_CLIENT_SECRET") || "your_client_secret"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

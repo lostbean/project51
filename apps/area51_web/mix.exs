@@ -49,7 +49,10 @@ defmodule Area51Web.MixProject do
       {:area51_core, in_umbrella: true},
       {:area51_llm, in_umbrella: true},
       {:jason, "~> 1.2"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      # Authentication
+      {:ueberauth, "~> 0.10.5"},
+      {:ueberauth_auth0, "~> 2.1.0"}
     ]
   end
 
