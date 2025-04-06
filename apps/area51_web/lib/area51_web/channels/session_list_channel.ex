@@ -1,6 +1,7 @@
 defmodule Area51Web.SessionListChannel do
   use LiveState.Channel, web_module: Area51Web
 
+  alias Area51Web.Auth.Guardian
   alias Area51LLM.Agent
 
   @channel_name "session_list"
@@ -8,18 +9,28 @@ defmodule Area51Web.SessionListChannel do
   def channel_name, do: @channel_name
 
   @impl true
-  def init(@channel_name, _payload, socket) do
-    # Fetch the list of available sessions
-    sessions = Area51Data.GameSession.list_sessions_for_ui()
+  def init(@channel_name, %{"token" => token}, socket) do
+    # Authenticate using JWT token
+    Guardian.verify_and_get_user_info(token)
+    |> case do
+      {:ok, user} ->
+        :logger.info("Authenticated WebSocket connection for user: #{user.username}")
 
-    state = %{
-      sessions: sessions,
-      user_id: socket.assigns.user_id,
-      username: socket.assigns.username,
-      error: nil
-    }
+        # Fetch the list of available sessions
+        sessions = Area51Data.GameSession.list_sessions_for_ui()
 
-    {:ok, state, socket}
+        state = %{
+          sessions: sessions,
+          username: user.username,
+          error: nil
+        }
+
+        {:ok, state, assign(socket, username: user.username)}
+
+      {:error, reason} ->
+        :logger.warning("WebSocket auth failed: #{inspect(reason)}")
+        :error
+    end
   end
 
   @impl true

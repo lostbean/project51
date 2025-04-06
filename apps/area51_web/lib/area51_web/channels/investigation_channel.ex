@@ -1,7 +1,7 @@
 defmodule Area51Web.InvestigationChannel do
   use LiveState.Channel, web_module: Area51Web
 
-  alias Area51Core.GameState
+  alias Area51Web.Auth.Guardian
   alias Area51LLM.Agent
 
   @channel_name "investigation"
@@ -13,39 +13,51 @@ defmodule Area51Web.InvestigationChannel do
   def channel_name, do: @channel_name <> ":*"
 
   @impl true
-  def init(@channel_name <> ":" <> session_id_str, _payload, socket) do
+  def init(@channel_name <> ":" <> session_id_str, %{"token" => token}, socket) do
     session_id = parse_session_id!(session_id_str)
 
-    # Check if we need to generate a new mystery or use an existing one
-    game_session =
-      case Area51Data.GameSession.get_game_session(session_id) do
-        nil ->
-          # Generate a new mystery
-          case Agent.generate_mystery() do
-            {:ok, mystery_data} ->
-              # Create session with the mystery data
-              Area51Data.GameSession.fetch_or_create_new_game_session(session_id, mystery_data)
+    Guardian.verify_and_get_user_info(token)
+    |> case do
+      {:ok, user} ->
+        :logger.info("Authenticated WebSocket connection for user: #{user.username}")
 
-            {:error, reason} ->
-              :logger.error("Error generating mystery: #{reason}")
-              nil
+        # Check if we need to generate a new mystery or use an existing one
+        game_session =
+          case Area51Data.GameSession.get_game_session(session_id) do
+            nil ->
+              # Generate a new mystery
+              case Agent.generate_mystery() do
+                {:ok, mystery_data} ->
+                  # Create session with the mystery data
+                  Area51Data.GameSession.fetch_or_create_new_game_session(
+                    session_id,
+                    mystery_data
+                  )
+
+                {:error, reason} ->
+                  :logger.error("Error generating mystery: #{reason}")
+                  nil
+              end
+
+            existing_session ->
+              existing_session
           end
 
-        existing_session ->
-          existing_session
-      end
+        # Get any existing clues for this game session
+        clues = Area51Data.Clue.get_clues_for_session(session_id)
 
-    # Get any existing clues for this game session
-    clues = Area51Data.Clue.get_clues_for_session(session_id)
+        state = %{
+          username: user.username,
+          game_session: Area51Data.GameSession.data_to_core(game_session),
+          clues: clues |> Enum.map(&Area51Data.Clue.data_to_core/1)
+        }
 
-    state = %GameState{
-      user_id: socket.assigns.user_id,
-      username: socket.assigns.username,
-      game_session: Area51Data.GameSession.data_to_core(game_session),
-      clues: clues |> Enum.map(&Area51Data.Clue.data_to_core/1)
-    }
+        {:ok, state, assign(socket, username: user.username)}
 
-    {:ok, state, socket}
+      {:error, reason} ->
+        :logger.warning("WebSocket auth failed: #{inspect(reason)}")
+        :error
+    end
   end
 
   defp parse_session_id!(str) do

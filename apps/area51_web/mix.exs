@@ -51,8 +51,11 @@ defmodule Area51Web.MixProject do
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
       # Authentication
-      {:ueberauth, "~> 0.10.5"},
-      {:ueberauth_auth0, "~> 2.1.0"}
+      # JWT Token verification
+      {:joken, "~> 2.6"},
+      {:joken_jwks, "~> 1.7"},
+      {:tesla, "~> 1.14"},
+      {:hackney, "~> 1.23"}
     ]
   end
 

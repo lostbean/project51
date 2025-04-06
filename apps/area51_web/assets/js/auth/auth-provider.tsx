@@ -10,6 +10,7 @@ import {
 
 export const Auth0Provider51 = ({ children }) => {
   // In Auth0 configure it under Settings > Applications
+  // Use it in SPA mode
   const domain = APP_AUTH0_DOMAIN;
   const clientId = APP_AUTH0_CLIENT_ID;
   // Attention: use dev mode use `localhost` instead of `0.0.0.0` to avoid secure origin issues
@@ -29,7 +30,7 @@ export const Auth0Provider51 = ({ children }) => {
       clientId={clientId}
       authorizationParams={{
         audience: audience,
-        redirect_uri: redirectUri,
+        redirect_uri: window.location.origin,
         scope: scopes.join(" "),
       }}
     >

@@ -9,8 +9,7 @@ defmodule Area51Web.Application do
   def start(_type, _args) do
     children = [
       Area51Web.Telemetry,
-      # Start a worker by calling: Area51Web.Worker.start_link(arg)
-      # {Area51Web.Worker, arg},
+      Area51Web.Auth.Guardian.Strategy,
       # Start to serve requests, typically the last entry
       Area51Web.Endpoint
     ]

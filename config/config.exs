@@ -53,16 +53,9 @@ config :esbuild,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Configure Uberauth and Auth0
-config :ueberauth, Ueberauth,
-  providers: [
-    auth0: {Ueberauth.Strategy.Auth0, []}
-  ]
-
-config :ueberauth, Ueberauth.Strategy.Auth0.OAuth,
-  domain: System.get_env("APP_AUTH0_DOMAIN") || "MISSING_APP_AUTH0_DOMAIN",
-  client_id: System.get_env("APP_AUTH0_CLIENT_ID") || "MISSING_APP_AUTH0_CLIENT_ID",
-  client_secret: System.get_env("APP_AUTH0_CLIENT_SECRET") || "MISSING_APP_AUTH0_CLIENT_SECRET"
+# Configure JWKS for JWT validation
+config :area51_web, Area51Web.Auth.Guardian.Strategy,
+  jwks_url: System.get_env("APP_AUTH0_JWKS_URL")
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

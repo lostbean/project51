@@ -266,28 +266,50 @@ const SessionListContainer = ({
   onSessionSelect,
   recentSessions,
 }) => {
-  const liveState = createLiveState("session_list");
+  const [liveState, setLiveState] = useState(null);
 
-  return (
-    <SessionList
-      socket={liveState}
-      onSessionSelect={onSessionSelect}
-      recentSessions={recentSessions}
-    />
-  );
+  useEffect(() => {
+    async function createChannel() {
+      const channel = await createLiveState("session_list");
+      await setLiveState(channel);
+    }
+    createChannel();
+  }, []);
+
+  if (liveState) {
+    return (
+      <SessionList
+        socket={liveState}
+        onSessionSelect={onSessionSelect}
+        recentSessions={recentSessions}
+      />
+    );
+  }
+  return <></>;
 };
 
 // Game Container that handles LiveState creation
 const GameContainer = ({ createLiveState, sessionId, onBackToList }) => {
-  const liveState = createLiveState(`investigation:${sessionId}`);
+  const [liveState, setLiveState] = useState(null);
 
-  return (
-    <Game
-      socket={liveState}
-      sessionId={sessionId}
-      onBackToList={onBackToList}
-    />
-  );
+  useEffect(() => {
+    async function createChannel() {
+      const channel = await createLiveState(`investigation:${sessionId}`);
+      await setLiveState(channel);
+    }
+    createChannel();
+  }, []);
+
+  if (liveState) {
+    return (
+      <Game
+        socket={liveState}
+        sessionId={sessionId}
+        onBackToList={onBackToList}
+      />
+    );
+  }
+  return <></>;
 };
 
 const App = () => {
@@ -297,19 +319,19 @@ const App = () => {
     const storedSessions = localStorage.getItem("recentSessions");
     return storedSessions ? JSON.parse(storedSessions) : [];
   });
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, getToken } = useAuth();
 
   // Function to create a LiveState connection with user data
-  const createLiveState = (topic: string) => {
+  const createLiveState = async (topic: string) => {
     let params = {};
 
     // Only add the user data if the user is authenticated
     if (isAuthenticated && user) {
-      params = {
-        user_id: user.id,
-        username: user.name,
-        avatar: user.avatar || "",
-      };
+      const token = await getToken();
+
+      if (token) {
+        params = { token };
+      }
     }
 
     return new LiveState({

@@ -1,5 +1,9 @@
 import { useAuth0 } from "@auth0/auth0-react";
 
+import { APP_AUTH0_AUDIENCE } from "env";
+
+const scopes = ["read:current_user", "update:current_user_metadata"];
+
 export const useAuth = () => {
   const {
     isAuthenticated,
@@ -11,23 +15,32 @@ export const useAuth = () => {
   } = useAuth0();
 
   const getToken = async () => {
-    try {
-      if (isAuthenticated) {
-        return await getAccessTokenSilently();
+    if (isAuthenticated) {
+      try {
+        const token = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: APP_AUTH0_AUDIENCE,
+            scope: scopes.join(" "),
+          },
+        });
+        return token;
+      } catch (error) {
+        return null;
       }
-      return null;
-    } catch (error) {
-      console.error("Error getting token:", error);
-      return null;
     }
+  };
+
+  // Call Auth0 logout
+  const handleLogout = () => {
+    console.info("logging out 👋");
+    logout({ logoutParams: { returnTo: window.location.origin } });
   };
 
   return {
     isAuthenticated,
     isLoading,
     login: loginWithRedirect,
-    logout: () =>
-      logout({ logoutParams: { returnTo: window.location.origin } }),
+    logout: handleLogout,
     user,
     getToken,
   };

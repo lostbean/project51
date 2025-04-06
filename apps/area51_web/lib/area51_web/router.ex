@@ -16,24 +16,18 @@ defmodule Area51Web.Router do
 
   pipeline :api_auth do
     plug :accepts, ["json"]
-    plug :fetch_session
     plug Area51Web.Plugs.RequireAuth
-  end
-
-  # Auth routes
-  scope "/auth", Area51Web do
-    pipe_through :browser
-
-    get "/:provider", AuthController, :request
-    get "/:provider/callback", AuthController, :callback
-    get "/logout", AuthController, :logout
   end
 
   # Public API endpoints
   scope "/api", Area51Web do
     pipe_through :api
 
-    get "/session", AuthController, :session
+    # Authentication endpoints
+    scope "/auth" do
+      # Token verification endpoint
+      post "/verify", AuthController, :verify
+    end
   end
 
   # Protected API endpoints
