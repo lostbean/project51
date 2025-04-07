@@ -57,6 +57,29 @@ config :phoenix, :json_library, Jason
 config :area51_web, Area51Web.Auth.Guardian.Strategy,
   jwks_url: System.get_env("APP_AUTH0_JWKS_URL")
 
+# Configure OpenTelemetry
+config :opentelemetry, :resource, service: %{name: "area51"}
+
+config :opentelemetry,
+  span_processor: :batch,
+  traces_exporter: :otlp
+
+config :opentelemetry_exporter,
+  otlp_protocol: :http_protobuf,
+  otlp_endpoint: "http://localhost:4318"
+
+# Configure OpenTelemetry Phoenix instrumenter
+config :opentelemetry_phoenix, :trace_options,
+  disabled_routers: [],
+  disabled_paths: []
+
+# Configure Phoenix to use OpenTelemetry instrumenter
+config :phoenix, :instrumenters, [OpenTelemetry.Phoenix.Instrumenter]
+
+# Configure Ecto to use OpenTelemetry
+config :area51_data, Area51Data.Repo, telemetry_prefix: [:area51_data, :repo]
+config :opentelemetry_ecto, tracer_id: :area51_tracer
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

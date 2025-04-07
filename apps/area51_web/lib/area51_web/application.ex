@@ -4,9 +4,13 @@ defmodule Area51Web.Application do
   @moduledoc false
 
   use Application
+  require Logger
 
   @impl true
   def start(_type, _args) do
+    # Initialize OpenTelemetry
+    setup_opentelemetry()
+
     children = [
       Area51Web.Telemetry,
       Area51Web.Auth.Guardian.Strategy,
@@ -26,5 +30,18 @@ defmodule Area51Web.Application do
   def config_change(changed, _new, removed) do
     Area51Web.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  # Set up OpenTelemetry with our custom configuration
+  defp setup_opentelemetry do
+    :ok = OpentelemetryBandit.setup()
+    # Initialize Phoenix instrumentation
+    :ok = OpentelemetryPhoenix.setup(adapter: :bandit)
+    # Initialize Ecto instrumentation
+    :ok = OpentelemetryEcto.setup([:area51_data, :repo])
+
+    Logger.info(
+      "OpenTelemetry configured with exporter: #{inspect(Application.get_env(:opentelemetry, :traces_exporter))}"
+    )
   end
 end

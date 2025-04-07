@@ -23,7 +23,7 @@ defmodule Area51Web.MixProject do
   def application do
     [
       mod: {Area51Web.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :tls_certificate_check]
     ]
   end
 
@@ -50,12 +50,25 @@ defmodule Area51Web.MixProject do
       {:area51_llm, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
+
       # Authentication
       # JWT Token verification
       {:joken, "~> 2.6"},
       {:joken_jwks, "~> 1.7"},
       {:tesla, "~> 1.14"},
-      {:hackney, "~> 1.23"}
+      {:hackney, "~> 1.23"},
+
+      # OpenTelemetry
+      {:opentelemetry, "~> 1.5"},
+      {:opentelemetry_api, "~> 1.4"},
+      {:opentelemetry_exporter, "~> 1.8"},
+      {:opentelemetry_phoenix, "~> 2.0"},
+      {:opentelemetry_bandit, "~> 0.2.0"},
+      {:opentelemetry_ecto, "~> 1.2"},
+      {:opentelemetry_process_propagator, "~> 0.3"},
+      {:opentelemetry_semantic_conventions, "~> 1.27"},
+      # OTLP export needs to validate https connections - started on extra_applications
+      {:tls_certificate_check, "~> 1.27"}
     ]
   end
 
