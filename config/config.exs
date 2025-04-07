@@ -29,9 +29,7 @@ config :area51_web, Area51Web.Endpoint,
   live_view: [signing_salt: "2ZG5S4yv"]
 
 # Configures Elixir's Logger
-config :logger, :console,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+config :logger, :default_formatter, metadata: [:error_code, :file, :request_id]
 
 config :area51_web, Area51Web.PromEx,
   disabled: false,

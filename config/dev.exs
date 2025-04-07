@@ -52,7 +52,9 @@ config :area51_web, Area51Web.Endpoint,
 config :area51_web, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+config :logger, :default_formatter,
+  format: "[$level] $message\n",
+  metadata: []
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
