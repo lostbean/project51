@@ -13,6 +13,7 @@ defmodule Area51Web.Application do
 
     children = [
       Area51Web.Telemetry,
+      Area51Web.PromEx,
       Area51Web.Auth.Guardian.Strategy,
       # Start to serve requests, typically the last entry
       Area51Web.Endpoint

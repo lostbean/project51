@@ -40,6 +40,9 @@ defmodule Area51Web.Endpoint do
     param_key: "request_logger",
     cookie_key: "request_logger"
 
+  # Create the /metrics endpoint so Prometheus can collect the metrics
+  plug PromEx.Plug, prom_ex_module: Area51Web.PromEx
+
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 

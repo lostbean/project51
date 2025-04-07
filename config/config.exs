@@ -33,6 +33,14 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+config :area51_web, Area51Web.PromEx,
+  disabled: false,
+  manual_metrics_start_delay: :no_delay,
+  drop_metrics_groups: [],
+  # Use grafana: :disabled to stop uploading updated generated dashboard at startup
+  grafana: [host: "http://localhost:3000"],
+  metrics_server: :disabled
+
 # Configure LiveState
 config :live_state,
   otp_app: :area51_web
