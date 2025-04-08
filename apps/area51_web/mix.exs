@@ -51,6 +51,9 @@ defmodule Area51Web.MixProject do
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
 
+      # Local gleam dependencies
+      {:area51_gleam, in_umbrella: true},
+
       # Authentication
       # JWT Token verification
       {:joken, "~> 2.6"},
