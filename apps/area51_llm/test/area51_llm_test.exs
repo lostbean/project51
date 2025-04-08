@@ -3,6 +3,7 @@ defmodule Area51LLMTest do
   doctest Area51LLM.Agent
 
   test "greets the world" do
-    assert {:ok, _} = Area51LLM.Agent.generate_narrative("Hey")
+    assert {:ok, _answer, _clues} =
+             Area51LLM.Agent.generate_narrative("Make a moster", "What is its color?", "dev")
   end
 end
