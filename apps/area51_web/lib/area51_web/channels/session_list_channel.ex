@@ -2,7 +2,11 @@ defmodule Area51Web.SessionListChannel do
   use LiveState.Channel, web_module: Area51Web
 
   alias Area51Web.Auth.Guardian
+  alias Area51Web.ChannelInit
   alias Area51LLM.Agent
+  alias OpenTelemetry.SemanticConventions.Trace
+
+  require OpenTelemetry.Tracer
 
   @channel_name "session_list"
 
@@ -10,55 +14,76 @@ defmodule Area51Web.SessionListChannel do
 
   @impl true
   def init(@channel_name, %{"token" => token}, socket) do
-    # Authenticate using JWT token
-    Guardian.verify_and_get_user_info(token)
-    |> case do
-      {:ok, user} ->
-        :logger.info("Authenticated WebSocket connection for user: #{user.username}")
+    socket = ChannelInit.assign_channel_id(socket)
+    Logger.metadata(request_id: socket.assigns.channel_id)
 
-        # Fetch the list of available sessions
-        sessions = Area51Data.GameSession.list_sessions_for_ui()
+    OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{
+      attributes: [
+        {:channel_id, socket.assigns.channel_id}
+      ]
+    } do
+      # Authenticate using JWT token
+      Guardian.verify_and_get_user_info(token)
+      |> case do
+        {:ok, user} ->
+          :logger.info("Authenticated WebSocket connection for user: #{user.username}")
 
-        state = %{
-          sessions: sessions,
-          username: user.username,
-          error: nil
-        }
+          # Fetch the list of available sessions
+          sessions = Area51Data.GameSession.list_sessions_for_ui()
 
-        {:ok, state, assign(socket, username: user.username)}
+          state = %{
+            sessions: sessions,
+            username: user.username,
+            error: nil
+          }
 
-      {:error, reason} ->
-        :logger.warning("WebSocket auth failed: #{inspect(reason)}")
-        :error
+          {:ok, state, assign(socket, username: user.username)}
+
+        {:error, reason} ->
+          :logger.warning("WebSocket auth failed: #{inspect(reason)}")
+          :error
+      end
     end
   end
 
   @impl true
-  def handle_event("create_session", %{"topic" => topic}, state) do
-    # Generate a new mystery based on the provided topic
-    case Agent.generate_mystery_with_topic(topic) do
-      {:ok, mystery_data} ->
-        # Create a new game session with the mystery data
-        Area51Data.GameSession.create_game_session(mystery_data)
+  def handle_event("create_session" = event, %{"topic" => topic}, state) do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
+      attributes: [
+        {:event, event}
+      ]
+    } do
+      # Generate a new mystery based on the provided topic
+      case Agent.generate_mystery_with_topic(topic) do
+        {:ok, mystery_data} ->
+          # Create a new game session with the mystery data
+          Area51Data.GameSession.create_game_session(mystery_data)
 
-        # Fetch updated session list
-        updated_sessions = Area51Data.GameSession.list_sessions_for_ui()
+          # Fetch updated session list
+          updated_sessions = Area51Data.GameSession.list_sessions_for_ui()
 
-        # Return the new session ID in the response so the client can join it
-        {:noreply, %{state | sessions: updated_sessions}}
+          # Return the new session ID in the response so the client can join it
+          {:noreply, %{state | sessions: updated_sessions}}
 
-      {:error, reason} ->
-        :logger.error("Error generating mystery: #{reason}")
-        {:noreply, %{state | error: "Failed to create new session"}}
+        {:error, reason} ->
+          :logger.error("Error generating mystery: #{reason}")
+          {:noreply, %{state | error: "Failed to create new session"}}
+      end
     end
   end
 
   @impl true
-  def handle_event("refresh_sessions", _payload, state) do
-    # Fetch updated session list
-    updated_sessions = Area51Data.GameSession.list_sessions_for_ui()
+  def handle_event("refresh_sessions" = event, _payload, state) do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
+      attributes: [
+        {:event, event}
+      ]
+    } do
+      # Fetch updated session list
+      updated_sessions = Area51Data.GameSession.list_sessions_for_ui()
 
-    {:noreply, %{state | sessions: updated_sessions}}
+      {:noreply, %{state | sessions: updated_sessions}}
+    end
   end
 
   @impl true

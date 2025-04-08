@@ -4,6 +4,7 @@ defmodule Area51Web.Auth.Guardian do
   """
   alias Area51Core.User
   alias JokenJwks.DefaultStrategyTemplate.EtsCache
+  require OpenTelemetry.Tracer
 
   # Add this module to the application tree
   defmodule Strategy do
@@ -39,27 +40,30 @@ defmodule Area51Web.Auth.Guardian do
   end
 
   def verify_and_get_user_info(token) do
-    token_config = %{}
-    joken_plugins = [{JokenJwks, strategy: Strategy}]
+    OpenTelemetry.Tracer.with_span "area51_web.auth.guardian.verify_and_get_user_info" do
+      token_config = %{}
+      joken_plugins = [{JokenJwks, strategy: Strategy}]
 
-    with {:ok, claims} <- Joken.verify_and_validate(token_config, token, nil, nil, joken_plugins),
-         {:ok, user} <- resource_from_claims(claims) do
-      {:ok, user}
-    else
-      _ ->
-        # In development, allow access without authentication
-        if Mix.env() == :dev do
-          :logger.warning("DEV MODE: Allowing unauthenticated WebSocket connection")
+      with {:ok, claims} <-
+             Joken.verify_and_validate(token_config, token, nil, nil, joken_plugins),
+           {:ok, user} <- resource_from_claims(claims) do
+        {:ok, user}
+      else
+        _ ->
+          # In development, allow access without authentication
+          if Mix.env() == :dev do
+            :logger.warning("DEV MODE: Allowing unauthenticated WebSocket connection")
 
-          dev_user = %User{
-            external_id: "only||dev",
-            username: "Developer"
-          }
+            dev_user = %User{
+              external_id: "only||dev",
+              username: "Developer"
+            }
 
-          {:ok, dev_user}
-        else
-          {:error, "Unauthorized access"}
-        end
+            {:ok, dev_user}
+          else
+            {:error, "Unauthorized access"}
+          end
+      end
     end
   end
 end

@@ -26,7 +26,12 @@ defmodule Area51LLM.MixProject do
   defp deps do
     [
       {:magus, "~> 0.2.0"},
-      {:langchain, "~> 0.3.2"}
+      {:langchain, "~> 0.3.2"},
+
+      # OpenTelemetry
+      {:opentelemetry, "~> 1.5"},
+      {:opentelemetry_api, "~> 1.4"},
+      {:opentelemetry_semantic_conventions, "~> 1.27"}
     ]
   end
 end
