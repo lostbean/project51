@@ -22,6 +22,66 @@ In **Area 51: Unveiling the Unknown**, you and your team of investigators are ta
 -   **LiveState:** Efficient state synchronization between the backend and frontend. 🔄
 -   **Ecto & SQLite:** Data persistence for game sessions, clues, and logs. 💾
 -   **Magus Library:** Seamless integration with Large Language Models. 🧠
+-   **Gleam:** Type-safe functional programming for state modeling. 🌟
+
+## 🧮 Architecture & Design
+
+### Modularity and Separation of Concerns
+
+The Area 51 project is structured as an Elixir umbrella application, providing clear separation of concerns through its modular design:
+
+-   **area51_core:** Contains the domain models and core game logic, independent of persistence or delivery mechanisms
+-   **area51_data:** Handles data persistence using Ecto, defining schemas and database operations
+-   **area51_llm:** Encapsulates all LLM integration logic, isolating the complexity of prompt engineering and response handling
+-   **area51_web:** Manages HTTP and WebSocket interfaces, focusing on request handling and UI delivery
+-   **area51_gleam:** Leverages Gleam for type-safe state modeling with seamless Elixir interop
+
+This modular approach facilitates isolated testing, allows components to evolve independently, and enables the system to scale effectively.
+
+### State Management
+
+The application implements a sophisticated state management strategy:
+
+-   **Backend State:** Game state is maintained in the Elixir backend, using Phoenix PubSub for real-time updates
+-   **Frontend Synchronization:** LiveState library efficiently syncs backend state to the React frontend
+-   **Event-Based Architecture:** State changes are driven by events, with the system responding to player actions and LLM outputs
+-   **Type-Safe State Modeling:** Gleam provides compile-time type safety for state definitions
+
+State flows from the backend to the frontend through Phoenix Channels and LiveState, creating a consistent, real-time experience for all players in an investigation.
+
+### Authentication & Authorization
+
+Authentication and authorization are implemented using industry-standard patterns:
+
+-   **IDP-Based Authentication:** Integration with Auth0 provides secure authentication services
+-   **JWT-Based Authorization:** JSON Web Tokens handle authorization for protected resources
+-   **ETS Caching:** Erlang Term Storage provides fast, lightweight caching of validation keys
+-   **JWKS Integration:** Dynamic key fetching with ETS caching enables seamless key rotation support
+
+The system validates JWTs using cached JWKS (JSON Web Key Sets), providing robust security with minimal performance overhead.
+
+### Observability
+
+Comprehensive observability is achieved through multi-layered instrumentation:
+
+-   **Telemetry:** Erlang/Elixir's telemetry library provides structured event emission
+-   **OpenTelemetry:** Standardized tracing across service boundaries
+-   **Structured Logging:** Consistent log formatting with contextual metadata
+-   **Metrics Collection:** PromEx integration for Prometheus-compatible metrics
+-   **Grafana Dashboards:** Pre-configured visualization for system performance
+
+Traces follow requests through the system, from HTTP requests through channel operations to LLM interactions, providing end-to-end visibility into system behavior.
+
+### Language Interoperability
+
+The project showcases seamless interoperation between multiple programming languages:
+
+-   **Elixir:** Powers the core application logic and backend services
+-   **Gleam:** Provides type-safe state modeling with compile-time guarantees
+-   **TypeScript:** Ensures type safety in the React frontend
+-   **JavaScript:** Supports the React component ecosystem
+
+This polyglot approach leverages each language's strengths while maintaining clean integration points.
 
 ## 🚀 Setup
 
@@ -76,12 +136,14 @@ area51_investigation/
 ├── apps/
 │   ├── area51_core/       # Core game logic
 │   ├── area51_data/       # Data persistence with Ecto & SQLite
+│   ├── area51_gleam/      # Gleam integration for type-safe state
 │   ├── area51_llm/        # LLM integration using Magus
 │   └── area51_web/        # Phoenix web application
 │       ├── assets/        # Frontend assets (React, JavaScript, CSS)
 │       ├── lib/           # Elixir backend code
 │       └── test/          # Backend tests
 ├── config/                # Application configurations
+├── gleam_state/           # Gleam package for state modeling
 ├── mix.exs                # Umbrella project configuration
 └── README.md              # Project documentation
 ```
