@@ -17,33 +17,44 @@ export const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated) {
     return (
       <Center h="100vh" bg="area51.900">
-        <VStack spacing={6}>
+        <VStack
+          spacing={6}
+          bg="rgba(0, 10, 5, 0.8)"
+          p={6}
+          borderWidth="2px"
+          borderColor="terminal.600"
+          borderRadius="md"
+          boxShadow="0 0 20px rgba(0, 230, 58, 0.25)"
+          backdropFilter="blur(10px)"
+          _hover={{
+            boxShadow: "0 0 25px rgba(0, 230, 58, 0.35)",
+          }}
+        >
           <Text
-            color="terminal.400"
+            color="#1aff56"
             fontSize="2xl"
             fontFamily="heading"
             textTransform="uppercase"
+            textShadow="0 0 5px rgba(0, 230, 58, 0.4)"
+            letterSpacing="1px"
           >
             AREA 51 CLEARANCE REQUIRED
           </Text>
-          <Box
-            p={4}
-            bg="area51.800"
-            borderWidth="1px"
-            borderColor="terminal.700"
-            maxW="md"
-            textAlign="center"
-          >
-            <Text color="terminal.300" fontFamily="mono" mb={6}>
+          <Box p={4} maxW="md" textAlign="center">
+            <Text color="#49ff78" fontFamily="mono" mb={6}>
               You need to authenticate to access Area 51 classified files.
             </Text>
             <VStack spacing={4}>
               <Button
-                colorScheme="brand"
+                bg="#00e63a"
+                color="black"
+                border="2px solid"
+                borderColor="#00b32e"
                 onClick={login}
                 _hover={{
                   transform: "translateY(-2px)",
                   boxShadow: "0 0 15px #00ff44",
+                  bg: "#1aff56",
                 }}
               >
                 [ AUTHENTICATE ]
