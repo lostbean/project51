@@ -25,6 +25,7 @@ In **Area 51: Unveiling the Unknown**, you and your team of investigators are ta
 -   **Gleam:** Type-safe functional programming for state modeling. 🌟
 
 ## 🧮 Architecture & Design
+See the [deep search analysis](./Architecture_Deep_Search.md) a for detailed exploration.
 
 ### Modularity and Separation of Concerns
 
@@ -121,26 +122,6 @@ This polyglot approach leverages each language's strengths while maintaining cle
 
 6.  **Access the Game:**
     -   Open your web browser and navigate to `http://localhost:4000`.
-
-## 🎨 Design & User Experience
-
-### Thematic Immersion
-
--   **Dark & Mysterious UI:** The user interface features a dark, mysterious aesthetic with subtle hints of alien technology and classified information. 🌑
--   **Thematic Typography & Imagery:** Custom fonts and imagery evoke the atmosphere of Area 51. 👽
--   **In-Game Terminology:** Labels and messages use thematic language, such as "Anomaly Detected," "Classified Intel," and "Witness Report." 📝
-
-### Real-Time Collaboration
-
--   **Dynamic Narrative:** The LLM evolves the narrative in real-time based on player inputs. 📖
--   **Shared Clues & Logs:** Clues and investigation logs are shared instantly among all players. 🔍
--   **Interactive Elements:** Input fields and buttons are styled to resemble secure computer terminals. 💻
-
-### Engaging Gameplay
-
--   **Collaborative Storytelling:** Players contribute to the story through their observations and actions. ✍️
--   **Dynamic Challenges:** The LLM introduces new challenges and obstacles based on player decisions. 🧩
--   **Real-Time Feedback:** Players receive immediate feedback from the LLM and their team. 🗣️
 
 ## 📂 Project Structure
 
