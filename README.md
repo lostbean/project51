@@ -88,17 +88,30 @@ This polyglot approach leverages each language's strengths while maintaining cle
 1.  **Prerequisites:**
     -   Install Elixir: [Installation Guide](https://elixir-lang.org/install.html)
     -   Install Node.js: [Installation Guide](https://nodejs.org/)
+    -   Install Docker Compose: [Installation Guide](https://docs.docker.com/compose/install/)
 
-3.  **Install Elixir Dependencies:**
+2.  **Install Elixir Dependencies:**
     ```bash
     mix setup
     ```
 
-4.  **Install Frontend Dependencies:**
+3.  **Install Frontend Dependencies:**
     ```bash
     cd apps/area51_web/assets
     npm install
     cd ../../.. # Return to the project root directory
+    ```
+
+4.  **Configure Auth0 environment and OpenAI key:**
+
+    Create a new Auth0 dev environment with SPA application type and callback `http://localhost:4000`. Make a copy of the `.env.example` file into `.env` and update the envars
+    according the values defined into your Auth0 environment.
+
+    Also include your OpenAI key in the `.env`, unless it's already part of your shell environment.
+
+5.  **Start the observability system:**
+    ```bash
+    docker-compose -f docker-compose.observability.yml up -d
     ```
 
 5.  **Start the Phoenix Server:**
