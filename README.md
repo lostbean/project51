@@ -146,31 +146,24 @@ This polyglot approach leverages each language's strengths while maintaining cle
     nix develop
     ```
 
-2.  **Install Elixir Dependencies:**
+2.  **Install Elixir and NPM Dependencies:**
     ```bash
     mix setup
     ```
 
-3.  **Install Frontend Dependencies:**
-    ```bash
-    cd apps/area51_web/assets
-    npm install
-    cd ../../.. # Return to the project root directory
-    ```
-
-4.  **Configure Auth0 environment and OpenAI key:**
+3.  **Configure Auth0 environment and OpenAI key:**
 
     Create a new Auth0 dev environment with SPA application type and callback `http://localhost:4000`. Make a copy of the `.env.example` file into `.env` and update the envars
     according the values defined into your Auth0 environment.
 
     Also include your OpenAI key in the `.env`, unless it's already part of your shell environment.
 
-5.  **Start the observability system:**
+4.  **Start the observability system:**
     ```bash
     docker-compose -f docker-compose.observability.yml up -d
     ```
 
-5.  **Start the Phoenix Server:**
+5.  **Start the Area51 application:**
     ```bash
     mix phx.server
     ```
@@ -185,7 +178,7 @@ area51_investigation/
 ├── apps/
 │   ├── area51_core/       # Core game logic
 │   ├── area51_data/       # Data persistence with Ecto & SQLite
-│   ├── area51_gleam/      # Gleam integration for type-safe state
+│   ├── area51_gleam/      # Gleam integration
 │   ├── area51_llm/        # LLM integration using Magus
 │   └── area51_web/        # Phoenix web application
 │       ├── assets/        # Frontend assets (React, JavaScript, CSS)
