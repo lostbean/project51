@@ -140,9 +140,11 @@ This polyglot approach leverages each language's strengths while maintaining cle
 ## 🚀 Setup
 
 1.  **Prerequisites:**
-    -   Install Elixir: [Installation Guide](https://elixir-lang.org/install.html)
-    -   Install Node.js: [Installation Guide](https://nodejs.org/)
-    -   Install Docker Compose: [Installation Guide](https://docs.docker.com/compose/install/)
+
+    You can install all the dependencies using [Nix](https://nixos.org/download/). Use the following command to enter the development shell:
+    ```bash
+    nix develop
+    ```
 
 2.  **Install Elixir Dependencies:**
     ```bash

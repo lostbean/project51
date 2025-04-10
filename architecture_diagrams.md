@@ -1,58 +1,5 @@
 # Area 51 Architecture Diagrams
 
-## System Architecture Overview
-
-```mermaid
-graph TB
-    subgraph "Area 51 Umbrella Application"
-        subgraph "area51_web"
-            web_app[Phoenix Web App]--hosts-->assets[React Frontend]
-            web_app--uses-->channels[Phoenix Channels]
-            web_app--validates-->auth[Guardian Auth]
-            channels--connects-->live_state[LiveState]
-        end
-
-        subgraph "area51_core"
-            domain[Domain Models]--defines-->game_state[Game State]
-            domain--defines-->game_session[Game Session]
-            domain--defines-->clue[Clue]
-            domain--defines-->user[User]
-        end
-
-        subgraph "area51_data"
-            repo[Ecto Repo]--uses-->schemas[Database Schemas]
-            schemas--maps to-->domain
-            repo--persists-->game_sessions[Game Sessions]
-            repo--persists-->investigation_logs[Investigation Logs]
-            repo--persists-->clues[Clues]
-            repo--persists-->player_contributions[Player Contributions]
-        end
-
-        subgraph "area51_llm"
-            agent[Agent]--uses-->investigation_agent[Investigation Agent]
-            agent--uses-->mystery_agent[Mystery Agent]
-            investigation_agent--generates-->narrative[Narrative]
-            investigation_agent--extracts-->new_clues[Clues]
-        end
-
-        subgraph "area51_gleam"
-            gleam_state[State Module]--provides-->type_safe_models[Type-Safe Models]
-        end
-    end
-
-    external_llm[LLM Provider]--connects-->agent
-    browser[Browser]--connects-->assets
-    auth0[Auth0]--provides-->tokens[JWT Tokens]
-    tokens--validated by-->auth
-
-    area51_core--informs-->area51_gleam
-    area51_core--accessed by-->area51_data
-    area51_core--used by-->area51_web
-    area51_web--uses-->area51_llm
-    live_state--synchronizes-->assets
-    live_state--uses-->domain
-```
-
 ## State Management Flow
 
 ```mermaid
