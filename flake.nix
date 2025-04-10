@@ -143,7 +143,7 @@
                 [ ]
             );
           shellHook = ''
-            echo "Gleam magic"
+            echo "👽👾👽👾👽👾👽👾👽👾👽👾"
           '';
         };
 
