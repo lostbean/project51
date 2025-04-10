@@ -22,7 +22,10 @@ defmodule Area51Gleam do
 
     defimpl Jason.Encoder, for: [__MODULE__] do
       def encode(%Clue{} = clue, opts) do
-        Jason.Encode.map(Map.take(clue, [:title, :description]) |> Map.put(:_gleam_type_, :clue), opts)
+        Jason.Encode.map(
+          Map.take(clue, [:title, :description]) |> Map.put(:_gleam_type_, :clue),
+          opts
+        )
       end
     end
   end

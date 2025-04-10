@@ -13,6 +13,7 @@ defmodule Area51Gleam.MixProject do
       lockfile: "../../mix.lock",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -33,6 +34,12 @@ defmodule Area51Gleam.MixProject do
       {:gleam_stdlib, "~> 0.59"},
       {:gleam_json, "~> 2.3.0"},
       {:gleeunit, "~> 1.0"}
+    ]
+  end
+
+  defp aliases do
+    [
+      setup: []
     ]
   end
 end

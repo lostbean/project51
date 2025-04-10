@@ -11,6 +11,7 @@ defmodule Area51LLM.MixProject do
       lockfile: "../../mix.lock",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -32,6 +33,12 @@ defmodule Area51LLM.MixProject do
       {:opentelemetry, "~> 1.5"},
       {:opentelemetry_api, "~> 1.4"},
       {:opentelemetry_semantic_conventions, "~> 1.27"}
+    ]
+  end
+
+  defp aliases do
+    [
+      setup: []
     ]
   end
 end

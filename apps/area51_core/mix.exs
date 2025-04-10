@@ -11,6 +11,7 @@ defmodule Area51Core.MixProject do
       lockfile: "../../mix.lock",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -26,6 +27,12 @@ defmodule Area51Core.MixProject do
   defp deps do
     [
       {:jason, "~> 1.4"}
+    ]
+  end
+
+  defp aliases do
+    [
+      setup: []
     ]
   end
 end
