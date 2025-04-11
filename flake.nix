@@ -147,9 +147,69 @@
           '';
         };
 
+        service_names = [ "area51" ];
+        architectures = [
+          "amd64"
+          "arm64"
+        ];
+
+        containers =
+          let
+            os = "linux";
+            all =
+              pkgs.lib.mapCartesianProduct
+                (
+                  {
+                    arch,
+                    service_name,
+                  }:
+                  {
+                    "${service_name}" = {
+                      "${toString arch}" =
+                        let
+                          nix_arch = builtins.replaceStrings [ "arm64" "amd64" ] [ "aarch64" "x86_64" ] arch;
+
+                          container_pkgs = import nixpkgs {
+                            system = "${nix_arch}-${os}";
+                            overlays = [
+                              unstable-packages
+                              elixir_with_gleam
+                              gleam_latest_ol
+                            ];
+                          };
+
+                          service = container_pkgs.callPackage ./release {
+                            erlang = container_pkgs.unstable.erlang;
+                            nodejs = container_pkgs.nodejs_22;
+                            elixir = container_pkgs.elixir-dev;
+                            gleam = container_pkgs.gleam-dev;
+                          };
+                        in
+                        container_pkgs.callPackage ./release/docker.nix {
+                          area51 = service;
+                          pkgs = container_pkgs;
+                        };
+                    };
+                  }
+                )
+                {
+                  arch = architectures;
+                  service_name = service_names;
+                };
+          in
+          pkgs.lib.foldl' (set: acc: pkgs.lib.recursiveUpdate acc set) { } all;
       in
       {
         devShells.default = shell;
+
+        packages.image = containers;
+
+        packages.default = pkgs.callPackage ./release {
+          erlang = pkgs.unstable.erlang;
+          nodejs = pkgs.nodejs_22;
+          elixir = pkgs.elixir-dev;
+          gleam = pkgs.gleam-dev;
+        };
       }
     );
 }

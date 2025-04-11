@@ -200,6 +200,14 @@ The `area51_llm` application handles the integration with the Large Language Mod
 
 **Note:** You'll need to replace the placeholder in `apps/area51_llm/lib/area51_llm/agent.ex` with your actual Magus library code and LLM provider credentials. 🔑
 
+## Deployment
+
+Build a release image with:
+```bash
+docker load < $(nix build .\#packages.aarch64-linux.image.area51.arm64 --no-link --print-out-paths)
+docker run -e OPENAI_API_KEY=$OPENAI_API_KEY area51-umbrella:dirty
+```
+
 ## 🤝 Contributing
 
 We welcome contributions! Feel free to submit pull requests or open issues to improve the game. 🛠️

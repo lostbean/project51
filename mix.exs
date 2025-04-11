@@ -10,6 +10,11 @@ defmodule Area51.Umbrella.MixProject do
       aliases: aliases(),
       umbrella: [
         apps: [:area51_core, :area51_data, :area51_llm, :area51_web]
+      ],
+      releases: [
+        area51: [
+          applications: [area51_web: :permanent]
+        ]
       ]
     ]
   end
