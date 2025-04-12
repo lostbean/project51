@@ -6,8 +6,19 @@
 }:
 let
 
+  DATABASE_VOLUME = "/data";
+  DATABASE_PATH = "${DATABASE_VOLUME}/area51.sqlite";
+
   entrypoint = pkgs.writeScript "entrypoint" ''
     #!${pkgs.runtimeShell}
+
+    if [ ! -f "${DATABASE_PATH}" ]; then
+        echo "Initializing new SQLite database at ${DATABASE_PATH}"
+        sqlite3 "${DATABASE_PATH}" "VACUUM;"
+    else
+        echo "SQLite database already exists at ${DATABASE_PATH}"
+    fi
+
     if [ -z "''${RELEASE_COOKIE}" ]; then
       echo "RELEASE_COOKIE is not set, generating a random release cookie"
       export RELEASE_COOKIE=$(dd if=/dev/urandom bs=1 count=16 | hexdump -e '16/1 "%02x"')
@@ -42,6 +53,7 @@ pkgs.dockerTools.buildImageWithNixDb {
     Cmd = [ "start" ];
     Entrypoint = [ "${entrypoint}" ];
     Env = [
+      "DATABASE_PATH=${DATABASE_PATH}"
       "PORT=4000"
       "EXTERNAL_HOSTNAME=${externalHostname}"
       "TZ=UTC"
@@ -49,5 +61,9 @@ pkgs.dockerTools.buildImageWithNixDb {
       "LANG=en_US.UTF-8"
       "LC_ALL=en_US.UTF-8"
     ];
+    Volumes = {
+      DATABASE_VOLUME = { };
+    };
+
   };
 }
