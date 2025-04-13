@@ -6,6 +6,7 @@
 }:
 let
 
+  PORT = toString 4000;
   DATABASE_VOLUME = "/data";
   DATABASE_PATH = "${DATABASE_VOLUME}/area51.sqlite";
 
@@ -14,7 +15,7 @@ let
 
     if [ ! -f "${DATABASE_PATH}" ]; then
         echo "Initializing new SQLite database at ${DATABASE_PATH}"
-        sqlite3 "${DATABASE_PATH}" "VACUUM;"
+        ${pkgs.sqlite}/bin/sqlite3 "${DATABASE_PATH}" "VACUUM;"
     else
         echo "SQLite database already exists at ${DATABASE_PATH}"
     fi
@@ -33,37 +34,26 @@ let
   '';
 
 in
-pkgs.dockerTools.buildImageWithNixDb {
+pkgs.dockerTools.buildLayeredImage {
   name = "area51-umbrella";
   tag = version;
-  copyToRoot = pkgs.buildEnv {
-    name = "image-root";
-    paths = [
-      area51
-      pkgs.busybox
-      pkgs.openssh
-    ];
-    pathsToLink = [
-      "/bin"
-      "/share"
-      "/etc"
-    ];
-  };
+  contents = [
+    area51
+    pkgs.busybox
+    pkgs.openssh
+    pkgs.cacert
+  ];
   config = {
     Cmd = [ "start" ];
     Entrypoint = [ "${entrypoint}" ];
     Env = [
       "DATABASE_PATH=${DATABASE_PATH}"
-      "PORT=4000"
+      "PORT=${PORT}"
       "EXTERNAL_HOSTNAME=${externalHostname}"
       "TZ=UTC"
       "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
       "LANG=en_US.UTF-8"
       "LC_ALL=en_US.UTF-8"
     ];
-    Volumes = {
-      DATABASE_VOLUME = { };
-    };
-
   };
 }

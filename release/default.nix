@@ -64,6 +64,12 @@ mixRelease {
   APP_AUTH0_CLIENT_ID = injected_envars.APP_AUTH0_CLIENT_ID;
   APP_AUTH0_CALLBACK_URL = injected_envars.APP_AUTH0_CALLBACK_URL;
 
+  EXTERNAL_DOMAIN = injected_envars.EXTERNAL_DOMAIN;
+  EXTERNAL_PORT = injected_envars.EXTERNAL_PORT;
+
+  OTLP_ENDPOINT = injected_envars.OTLP_ENDPOINT;
+  GRAFANA_URL = injected_envars.GRAFANA_URL;
+
   nativeBuildInputs = [
     nodejs
     gleam

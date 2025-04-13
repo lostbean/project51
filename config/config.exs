@@ -36,7 +36,7 @@ config :area51_web, Area51Web.PromEx,
   manual_metrics_start_delay: :no_delay,
   drop_metrics_groups: [],
   # Use grafana: :disabled to stop uploading updated generated dashboard at startup
-  grafana: [host: "http://localhost:3000"],
+  grafana: [host: "http://grafana:3000"],
   metrics_server: :disabled
 
 # Configure LiveState
@@ -72,7 +72,7 @@ config :opentelemetry,
 
 config :opentelemetry_exporter,
   otlp_protocol: :http_protobuf,
-  otlp_endpoint: "http://localhost:4318"
+  otlp_endpoint: System.get_env("OTLP_ENDPOINT")
 
 # Configure OpenTelemetry Phoenix instrumenter
 config :opentelemetry_phoenix, :trace_options,

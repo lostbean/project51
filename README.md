@@ -205,7 +205,7 @@ The `area51_llm` application handles the integration with the Large Language Mod
 Build a release image with:
 ```bash
 docker load < $(nix build .\#packages.aarch64-linux.image.area51.arm64 --no-link --print-out-paths)
-docker run -e OPENAI_API_KEY=$OPENAI_API_KEY area51-umbrella:dirty
+docker run -e OPENAI_API_KEY=$OPENAI_API_KEY -p 4000:4000 -v area51db:/data area51-umbrella:dirty
 ```
 
 ## 🤝 Contributing
