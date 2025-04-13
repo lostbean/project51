@@ -30,6 +30,8 @@ let
       export SECRET_KEY_BASE=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | sha256sum | cut -d' ' -f1)
     fi
 
+    ${area51}/bin/area51 eval "Area51Data.migrate"
+
     ${area51}/bin/area51 "$@"
   '';
 
