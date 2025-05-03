@@ -31,8 +31,10 @@
               src = prev.fetchFromGitHub {
                 owner = "Papipo";
                 repo = "elixir";
-                rev = "b64f23a35caa321cc942815d0e47298449a72404";
-                hash = "sha256-LHqMXmUMfjCZfRnKYl8H0DyvnaTB/t0LYvCnIfHeip4=";
+                rev = "638b8a3e1b369b597d5d51df83d3e479c7ee3a61";
+                hash = "sha256-byWY7xfhWPbQtyj2oC1kmpJ1IYeKKAP8V11sXZj0MV4=";
+                # rev = "b64f23a35caa321cc942815d0e47298449a72404";
+                # hash = "sha256-LHqMXmUMfjCZfRnKYl8H0DyvnaTB/t0LYvCnIfHeip4=";
                 # rev = "70861671270bf3a999cd506041adb87a2f69b87a";
                 # hash = "sha256-zreJ+gqDo8nvwyAqcelT1ADuAMUnOgJqey826n/XU58=";
               };
@@ -119,12 +121,12 @@
           buildInputs =
             with pkgs;
             [
-              gleam-dev
+              # gleam-dev
+              unstable.gleam
               elixir-dev
               elixir-ls-dev
               # lexical-dev
               # next-ls-dev
-              # unstable.gleam
               # unstable.elixir
               # unstable.elixir-ls
               # unstable.lexical
