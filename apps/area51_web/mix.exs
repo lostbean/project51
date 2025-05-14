@@ -72,7 +72,8 @@ defmodule Area51Web.MixProject do
       {:opentelemetry_semantic_conventions, "~> 1.27"},
       # OTLP export needs to validate https connections - started on extra_applications
       {:tls_certificate_check, "~> 1.27"},
-      {:prom_ex, "~> 1.11.0"}
+      {:prom_ex, "~> 1.11.0"},
+      {:meck, "~> 1.0", only: :test}
     ]
   end
 
