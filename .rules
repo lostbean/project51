@@ -1,0 +1,30 @@
+You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
+
+# Elixir and Phoenix Usage
+
+- In controllers, use `assign_prop/3` to assign props to the Inertia page and then `render_inertia/2` to render Inertia pages.
+- When generating migrations, use `mix ecto.gen.migration <name>`
+- Use plural form for context modules (e.g., "Users" for users table)
+- Use singular form for schema modules (e.g., "User" for users table)
+- Context files are usually inside a folder named after the resource (e.g., lib/my_app/users.ex)
+- Schema files are usually inside a folder named after the resource (e.g., lib/my_app/users/user.ex)
+- Prefer keyword-based queries over pipe-based queries
+  - For example, use `from(u in User, where: u.age > 18, select: u)` over `User |> where(age: 18) |> select([u], u)`
+- Use `dbg/1` to debug code.
+
+# React Usage
+
+- Pages are in assets/js/pages. Use default export for pages.
+- Components are in assets/js/components. Use named exports for components.
+- Utils are in assets/js/lib.
+- Use absolute paths for local imports using `@/`
+- Always create the mobile version of the component along with the desktop version.
+- Use kebab-case for file names.
+- If the page or component uses a type for a resource from the database, like users or courses, create the type in the assets/js/types folder.
+- Prefer types over interfaces.
+
+# General Usage
+
+- Use the `mix check` command after generating lots of files to check the Elixir and React code for errors and code quality. If you encounter format errors, use `mix format` to fix them.
+- If any of my requests are not clear, ask me to clarify.
+- If you have better suggestions, feel free to suggest them.
