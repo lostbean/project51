@@ -1,6 +1,17 @@
 defmodule Area51.Web.SessionListChannel do
+  # Type issue with livestate
+  @dialyzer :no_match
+
+  @moduledoc """
+  A `LiveState.Channel` responsible for managing and broadcasting the list of
+  available game sessions.
+
+  It handles user authentication, fetches the current list of game sessions,
+  and processes events to create new game sessions or refresh the existing list.
+  """
   use LiveState.Channel, web_module: Area51.Web
 
+  alias Area51.Data.GameSession
   alias Area51.Web.Auth.Guardian
   alias Area51.Web.ChannelInit
   alias Area51LLM.Agent
@@ -28,7 +39,7 @@ defmodule Area51.Web.SessionListChannel do
           :logger.info("Authenticated WebSocket connection for user: #{user.username}")
 
           # Fetch the list of available sessions
-          sessions = Area51.Data.GameSession.list_sessions_for_ui()
+          sessions = GameSession.list_sessions_for_ui()
 
           state = %{
             sessions: sessions,
@@ -56,10 +67,10 @@ defmodule Area51.Web.SessionListChannel do
       case Agent.generate_mystery_with_topic(topic) do
         {:ok, mystery_data} ->
           # Create a new game session with the mystery data
-          Area51.Data.GameSession.create_game_session(mystery_data)
+          GameSession.create_game_session(mystery_data)
 
           # Fetch updated session list
-          updated_sessions = Area51.Data.GameSession.list_sessions_for_ui()
+          updated_sessions = GameSession.list_sessions_for_ui()
 
           # Return the new session ID in the response so the client can join it
           {:noreply, %{state | sessions: updated_sessions}}
@@ -79,7 +90,7 @@ defmodule Area51.Web.SessionListChannel do
       ]
     } do
       # Fetch updated session list
-      updated_sessions = Area51.Data.GameSession.list_sessions_for_ui()
+      updated_sessions = GameSession.list_sessions_for_ui()
 
       {:noreply, %{state | sessions: updated_sessions}}
     end

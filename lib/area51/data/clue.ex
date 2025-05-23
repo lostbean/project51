@@ -1,4 +1,12 @@
 defmodule Area51.Data.Clue do
+  @moduledoc """
+  Defines the Ecto schema for `clues` and provides functions for
+  managing clue data in the database.
+
+  Each clue has `content` and is associated with a `GameSession`.
+  This module allows adding new clues and retrieving all clues for a
+  specific game session.
+  """
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]

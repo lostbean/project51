@@ -26,7 +26,11 @@ config :area51, Area51.Web.Endpoint,
     layout: false
   ],
   pubsub_server: Area51.Data.PubSub,
-  live_view: [signing_salt: "2ZG5S4yv"]
+  live_view: [signing_salt: "2ZG5S4yv"],
+  secure_browser_headers: %{
+    "content-security-policy" =>
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; frame-ancestors 'none';"
+  }
 
 # Configures Elixir's Logger
 config :logger, :default_formatter, metadata: [:error_code, :file, :request_id]

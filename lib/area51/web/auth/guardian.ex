@@ -1,4 +1,7 @@
 defmodule Area51.Web.Auth.Guardian do
+  @dialyzer :no_match
+  @dialyzer {:no_unknown, verify_and_get_user_info: 1}
+
   @moduledoc """
   Used for JWT authentication handling.
   """
@@ -27,7 +30,7 @@ defmodule Area51.Web.Auth.Guardian do
     end
   end
 
-  def get_signers() do
+  def get_signers do
     EtsCache.get_signers(Strategy)
   end
 

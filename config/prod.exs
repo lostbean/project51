@@ -6,7 +6,12 @@ import Config
 # which you should run after static files are built and
 # before starting your production server.
 config :area51, Area51.Web.Endpoint,
-  url: [host: System.get_env("EXTERNAL_DOMAIN"), port: System.get_env("EXTERNAL_PORT")],
+  url: [
+    scheme: "https",
+    host: System.get_env("EXTERNAL_DOMAIN"),
+    port: System.get_env("EXTERNAL_PORT")
+  ],
+  force_ssl: [rewrite: true, hsts: true],
   server: true,
   cache_static_manifest: "priv/static/cache_manifest.json"
 

@@ -1,4 +1,12 @@
 defmodule Area51.Data.GameSession do
+  @moduledoc """
+  Defines the Ecto schema for `game_sessions` and provides functions
+  for creating, reading, and updating game session data in the database.
+
+  This module handles the persistence layer for game sessions, including
+  their narrative, title, description, solution, and associations with
+  clues and player contributions.
+  """
   use Ecto.Schema
   import Ecto.Changeset
   # Using Repo directly for operations

@@ -2,8 +2,8 @@ defmodule Area51.Web.SessionListChannelTest do
   # Changed to async: false to avoid mocking conflicts
   use Area51.Web.LiveStateChannelCase, async: false
 
-  alias Area51.Web.SessionListChannel
   alias Area51.Web.Auth.Guardian
+  alias Area51.Web.SessionListChannel
 
   @endpoint Area51.Web.Endpoint
   @channel_name "session_list"

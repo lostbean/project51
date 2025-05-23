@@ -4,6 +4,10 @@ defmodule Area51.Gleam do
   """
 
   defmodule Clue do
+    @moduledoc """
+    Represents a clue discovered during an investigation,
+    containing a title and a description.
+    """
     @enforce_keys [:title, :description]
     defstruct title: nil, description: nil
 
@@ -31,6 +35,10 @@ defmodule Area51.Gleam do
   end
 
   defmodule InvestigationCard do
+    @moduledoc """
+    Represents a summarized card for an investigation, typically containing
+    its ID and title. Used for displaying lists of investigations.
+    """
     @enforce_keys [:id, :title]
     defstruct id: nil, title: nil
 
@@ -49,24 +57,44 @@ defmodule Area51.Gleam do
   end
 
   defmodule State do
+    @moduledoc """
+    Defines and handles different application states for interoperability with Gleam.
+
+    This module encapsulates various state structures like `InvestigationState`
+    (for active game investigations) and `Navigation` (for listing investigations),
+    and provides functions to convert these states between Elixir and Gleam
+    representations.
+    """
+    alias Area51.Gleam.Clue
+    alias Area51.Gleam.InvestigationCard
+
     defmodule InvestigationState do
+      @moduledoc """
+      Defines the structure for the state of an active game investigation.
+      It includes the investigation's ID, a list of discovered clues,
+      the overall goal, and the title of the investigation.
+      """
       @enforce_keys [:id, :clues, :goal, :title]
       defstruct id: nil, clues: [], goal: nil, title: nil
 
       @type t() :: %__MODULE__{
               id: integer(),
-              clues: list(Area51.Gleam.Clue.t()),
+              clues: list(Clue.t()),
               goal: String.t(),
               title: String.t()
             }
     end
 
     defmodule Navigation do
+      @moduledoc """
+      Represents the navigation state, primarily holding a list of
+      `Area51.Gleam.InvestigationCard` structs for display.
+      """
       @enforce_keys [:investigations]
       defstruct investigations: []
 
       @type t() :: %__MODULE__{
-              investigations: list(Area51.Gleam.InvestigationCard.t())
+              investigations: list(InvestigationCard.t())
             }
     end
 
@@ -75,7 +103,7 @@ defmodule Area51.Gleam do
     def from_gleam({:investigation_state, id, clues, goal, title}) do
       %InvestigationState{
         id: id,
-        clues: Enum.map(clues, &Area51.Gleam.Clue.from_gleam/1),
+        clues: Enum.map(clues, &Clue.from_gleam/1),
         goal: goal,
         title: title
       }
@@ -83,7 +111,7 @@ defmodule Area51.Gleam do
 
     def from_gleam({:navigation, investigations}) do
       %Navigation{
-        investigations: Enum.map(investigations, &Area51.Gleam.InvestigationCard.from_gleam/1)
+        investigations: Enum.map(investigations, &InvestigationCard.from_gleam/1)
       }
     end
 
@@ -92,11 +120,11 @@ defmodule Area51.Gleam do
     end
 
     def to_gleam(%InvestigationState{id: id, clues: clues, goal: goal, title: title}) do
-      {:investigation_state, id, Enum.map(clues, &Area51.Gleam.Clue.to_gleam/1), goal, title}
+      {:investigation_state, id, Enum.map(clues, &Clue.to_gleam/1), goal, title}
     end
 
     def to_gleam(%Navigation{investigations: investigations}) do
-      {:navigation, Enum.map(investigations, &Area51.Gleam.InvestigationCard.to_gleam/1)}
+      {:navigation, Enum.map(investigations, &InvestigationCard.to_gleam/1)}
     end
 
     def to_gleam(:empty) do

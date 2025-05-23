@@ -16,6 +16,7 @@ defmodule Area51.Web.ConnCase do
   """
 
   use ExUnit.CaseTemplate
+  alias Area51.Data.DataCase
 
   using do
     quote do
@@ -32,7 +33,7 @@ defmodule Area51.Web.ConnCase do
   end
 
   setup tags do
-    Area51.Data.DataCase.setup_sandbox(tags)
+    DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

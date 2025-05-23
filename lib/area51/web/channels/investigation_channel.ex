@@ -1,9 +1,23 @@
 defmodule Area51.Web.InvestigationChannel do
+  # Type issue with livestate
+  @dialyzer :no_match
+
+  @moduledoc """
+  A `LiveState.Channel` that manages the state and interactions for an
+  individual game investigation session.
+
+  It handles user authentication for a specific session, initializes the game
+  state (including mystery generation and clue retrieval), and processes
+  player inputs to advance the narrative and uncover new clues via an LLM agent.
+  """
   use LiveState.Channel, web_module: Area51.Web
 
+  alias Area51.Data.Clue
+  alias Area51.Data.GameSession
+  alias Area51.Data.PlayerContribution
   alias Area51.Web.Auth.Guardian
-  alias Area51LLM.Agent
   alias Area51.Web.ChannelInit
+  alias Area51LLM.Agent
 
   require OpenTelemetry.Tracer
 
@@ -34,34 +48,15 @@ defmodule Area51.Web.InvestigationChannel do
           :logger.info("User '#{user.username}' has authenticated into channel #{__MODULE__}")
 
           # Check if we need to generate a new mystery or use an existing one
-          game_session =
-            case Area51.Data.GameSession.get_game_session(session_id) do
-              nil ->
-                # Generate a new mystery
-                case Agent.generate_mystery() do
-                  {:ok, mystery_data} ->
-                    # Create session with the mystery data
-                    Area51.Data.GameSession.fetch_or_create_new_game_session(
-                      session_id,
-                      mystery_data
-                    )
-
-                  {:error, reason} ->
-                    :logger.error("Error generating mystery: #{reason}")
-                    nil
-                end
-
-              existing_session ->
-                existing_session
-            end
+          game_session = fetch_or_initialize_game_session(session_id)
 
           # Get any existing clues for this game session
-          clues = Area51.Data.Clue.get_clues_for_session(session_id)
+          clues = Clue.get_clues_for_session(session_id)
 
           state = %{
             username: user.username,
-            game_session: Area51.Data.GameSession.data_to_core(game_session),
-            clues: clues |> Enum.map(&Area51.Data.Clue.data_to_core/1)
+            game_session: GameSession.data_to_core(game_session),
+            clues: clues |> Enum.map(&Clue.data_to_core/1)
           }
 
           {:ok, state, assign(socket, username: user.username)}
@@ -84,6 +79,39 @@ defmodule Area51.Web.InvestigationChannel do
     end
   end
 
+  defp fetch_or_initialize_game_session(session_id) do
+    case GameSession.get_game_session(session_id) do
+      nil ->
+        # Generate a new mystery
+        case Agent.generate_mystery() do
+          {:ok, mystery_data} ->
+            # Create session with the mystery data
+            GameSession.fetch_or_create_new_game_session(
+              session_id,
+              mystery_data
+            )
+
+          {:error, reason} ->
+            :logger.error("Error generating mystery: #{reason}")
+            nil
+        end
+
+      existing_session ->
+        existing_session
+    end
+  end
+
+  defp process_and_store_clues(clues, game_session_id) do
+    if length(clues) > 0 do
+      Enum.map(clues, fn clue_data ->
+        Clue.add_clue(game_session_id, clue_data["content"])
+        |> Clue.data_to_core()
+      end)
+    else
+      []
+    end
+  end
+
   @impl true
   def handle_event("new_input" = event, %{"input" => input}, state) do
     OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
@@ -95,7 +123,7 @@ defmodule Area51.Web.InvestigationChannel do
       game_session = state.game_session
 
       # Log player contribution
-      Area51.Data.PlayerContribution.add_player_contribution(game_session.id, username, input)
+      PlayerContribution.add_player_contribution(game_session.id, username, input)
 
       # Trigger LLM to generate next narrative and extract clues
       case Agent.generate_narrative(game_session.narrative, input, username) do
@@ -107,18 +135,10 @@ defmodule Area51.Web.InvestigationChannel do
           new_game_session = %{game_session | narrative: updated_narrative}
 
           # Update game session in database
-          Area51.Data.GameSession.update_narrative(game_session.id, updated_narrative)
+          GameSession.update_narrative(game_session.id, updated_narrative)
 
           # Store any clues that were found
-          db_clues =
-            if length(clues) > 0 do
-              Enum.map(clues, fn clue ->
-                Area51.Data.Clue.add_clue(game_session.id, clue["content"])
-                |> Area51.Data.Clue.data_to_core()
-              end)
-            else
-              []
-            end
+          db_clues = process_and_store_clues(clues, game_session.id)
 
           # Update clues in game state
           updated_clues = state.clues ++ db_clues

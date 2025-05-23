@@ -6,12 +6,15 @@ defmodule Area51.Web.Router do
     plug :fetch_session
     plug :fetch_flash
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+
+    plug :put_secure_browser_headers,
+         Application.compile_env!(:area51, Area51.Web.Endpoint)[:secure_browser_headers]
   end
 
   pipeline :api do
     plug :accepts, ["json"]
     plug :fetch_session
+    plug :protect_from_forgery
   end
 
   pipeline :api_auth do

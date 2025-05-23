@@ -1,8 +1,10 @@
 defmodule Area51.Web.LiveStateSocket do
   use Phoenix.Socket
+  alias Area51.Web.InvestigationChannel
+  alias Area51.Web.SessionListChannel
 
-  channel Area51.Web.InvestigationChannel.channel_name(), Area51.Web.InvestigationChannel
-  channel Area51.Web.SessionListChannel.channel_name(), Area51.Web.SessionListChannel
+  channel InvestigationChannel.channel_name(), InvestigationChannel
+  channel SessionListChannel.channel_name(), SessionListChannel
 
   @impl true
   def connect(_params, socket, _connect_info) do

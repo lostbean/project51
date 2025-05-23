@@ -35,7 +35,7 @@ defmodule Area51.Web.LiveStateTestUtils do
                        version: 0
                      }
                    },
-                   10000
+                   10_000
 
     # Return socket and the (confirmed) initial state
     {joined_socket, expected_initial_state}

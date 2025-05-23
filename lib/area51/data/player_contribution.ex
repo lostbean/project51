@@ -1,4 +1,11 @@
 defmodule Area51.Data.PlayerContribution do
+  @moduledoc """
+  Defines the Ecto schema for `player_contributions`.
+
+  This schema stores the input provided by a player (identified by `username`)
+  during a specific `GameSession`. It includes functions for creating
+  changesets and adding new contributions.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

@@ -15,11 +15,11 @@ defmodule Area51.Data.DataCase do
   """
 
   use ExUnit.CaseTemplate
+  alias Area51.Data.Repo
+  alias Ecto.Adapters.SQL.Sandbox
 
   using do
     quote do
-      alias Area51.Data.Repo
-
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
@@ -28,7 +28,7 @@ defmodule Area51.Data.DataCase do
   end
 
   setup tags do
-    Area51.Data.DataCase.setup_sandbox(tags)
+    setup_sandbox(tags)
     :ok
   end
 
@@ -36,8 +36,8 @@ defmodule Area51.Data.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Area51.Data.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+    pid = Sandbox.start_owner!(Repo, shared: not tags[:async])
+    on_exit(fn -> Sandbox.stop_owner(pid) end)
   end
 
   @doc """

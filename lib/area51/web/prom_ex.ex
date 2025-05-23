@@ -1,4 +1,11 @@
 defmodule Area51.Web.PromEx do
+  @moduledoc """
+  Configures PromEx for collecting and exposing application metrics to Prometheus.
+
+  This module defines the PromEx plugins for various parts of the application
+  (Application, BEAM, Phoenix, Ecto), sets up Grafana dashboard assignments,
+  and specifies the Grafana dashboards to be used for visualizing metrics.
+  """
   use PromEx, otp_app: :area51
 
   alias PromEx.Plugins

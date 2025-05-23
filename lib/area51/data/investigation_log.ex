@@ -1,4 +1,11 @@
 defmodule Area51.Data.InvestigationLog do
+  @moduledoc """
+  Defines the Ecto schema for `investigation_logs`.
+
+  This schema is intended to store log entries or events that occur
+  during a specific `GameSession`. Each log has an `entry` string and is
+  associated with a game session.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

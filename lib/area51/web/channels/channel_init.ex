@@ -1,4 +1,10 @@
 defmodule Area51.Web.ChannelInit do
+  @moduledoc """
+  Provides utility functions for initializing Phoenix channels,
+  primarily for generating and assigning unique channel IDs.
+
+  This helps in correlating logs and traces for individual channel connections.
+  """
   defp generate_request_id do
     binary = <<
       System.system_time(:nanosecond)::64,

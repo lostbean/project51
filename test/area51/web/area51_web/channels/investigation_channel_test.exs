@@ -10,7 +10,9 @@ defmodule Area51.Web.InvestigationChannelTest do
     # %{socket: socket}
   end
 
-  # TODO: How test live-state???
+  # Tests for LiveState channel to be implemented.
+  # Refer to LiveState documentation and `test/area51/web/support/live_state_test_utils.ex`
+  # for guidance on testing LiveState channels.
 
   # test "ping replies with status ok", %{socket: socket} do
   #   ref = push(socket, "ping", %{"hello" => "there"})

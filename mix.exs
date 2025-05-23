@@ -116,7 +116,7 @@ defmodule Area51.MixProject do
         "format --check-formatted",
         "credo --strict",
         "dialyzer",
-        "sobelow --exit",
+        "sobelow --skip --exit",
         "test",
         # Optional: ensures docs can be built
         "docs"

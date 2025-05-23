@@ -1,12 +1,25 @@
 defmodule Area51LLM.InvestigationAgent do
+  # Needs upstream fix from Magus on the :any type
+  @dialyzer {:no_match, generate_narrative_node: 2}
+  @dialyzer {:no_match, extract_clues_node: 2}
+
+  @moduledoc """
+  An LLM-powered agent that drives the Area 51 investigation game forward.
+
+  This agent takes the current game narrative and player input, uses an LLM
+  to generate the next segment of the story, and then employs the LLM again
+  to extract relevant clues from the newly generated narrative. It uses
+  `Magus.GraphAgent` to orchestrate this multi-step LLM interaction and
+  incorporates OpenTelemetry for tracing.
+  """
   # Core dependencies
-  alias Magus.GraphAgent
-  alias Magus.AgentChain
   alias LangChain.PromptTemplate
+  alias Magus.AgentChain
+  alias Magus.GraphAgent
 
   require OpenTelemetry.Tracer
-  alias OpenTelemetry.Tracer
   alias OpenTelemetry.SemanticConventions.Trace
+  alias OpenTelemetry.Tracer
 
   @doc """
   Initialize the investigation agent
@@ -106,7 +119,7 @@ defmodule Area51LLM.InvestigationAgent do
 
       Tracer.set_attributes([
         {:"llm.narrative.duration_ms", duration_ms},
-        {:"llm.narrative.length", String.length(content)}
+        {:"llm.narrative.length", String.length(to_string(content))}
       ])
 
       %{state | narrative_response: content}
@@ -152,16 +165,20 @@ defmodule Area51LLM.InvestigationAgent do
 
       start_time = System.monotonic_time()
 
-      {:ok, content, _response} =
+      chain_result =
         chain
         |> AgentChain.add_message(PromptTemplate.to_message!(extract_clues_template, state))
         |> AgentChain.ask_for_json_response(@clues_schema)
         |> AgentChain.run()
 
+      clues =
+        case chain_result do
+          {:ok, %{"clues" => clues_list}, _response} when is_list(clues_list) -> clues_list
+          {:error, _} -> []
+        end
+
       end_time = System.monotonic_time()
       duration_ms = System.convert_time_unit(end_time - start_time, :native, :millisecond)
-
-      clues = content["clues"] || []
 
       Tracer.set_attributes([
         {:"llm.extract_clues.duration_ms", duration_ms},

@@ -1,8 +1,17 @@
 defmodule Area51LLM.MysteryAgent do
+  @moduledoc """
+  An agent responsible for generating new mysteries for the Area 51 investigation game
+  using a Large Language Model (LLM).
+
+  It utilizes `Magus.GraphAgent` to define a process for prompting an LLM
+  to create a mystery with a title, description, solution, and starting narrative,
+  adhering to a predefined JSON schema. It can generate mysteries based on a
+  randomly selected type or a specified topic.
+  """
   # Core dependencies
-  alias Magus.GraphAgent
-  alias Magus.AgentChain
   alias LangChain.PromptTemplate
+  alias Magus.AgentChain
+  alias Magus.GraphAgent
 
   @mystery_types [
     "alien technology discovery",
@@ -40,7 +49,7 @@ defmodule Area51LLM.MysteryAgent do
   @doc """
   Generate a new mystery for an Area 51 investigation
   """
-  def generate_mystery() do
+  def generate_mystery do
     generate_mystery_with_topic(nil)
   end
 

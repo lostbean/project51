@@ -16,6 +16,7 @@ defmodule Area51.Web.ChannelCase do
   """
 
   use ExUnit.CaseTemplate
+  alias Area51.Data.DataCase
 
   using do
     quote do
@@ -29,7 +30,7 @@ defmodule Area51.Web.ChannelCase do
   end
 
   setup tags do
-    Area51.Data.DataCase.setup_sandbox(tags)
+    DataCase.setup_sandbox(tags)
     :ok
   end
 end

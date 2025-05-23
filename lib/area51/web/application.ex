@@ -6,6 +6,7 @@ defmodule Area51.Web.Application do
   use Application
   require Logger
 
+  alias Area51.Web.Endpoint
   @impl true
   def start(_type, _args) do
     # Initialize OpenTelemetry
@@ -34,7 +35,7 @@ defmodule Area51.Web.Application do
   # whenever the application is updated.
   @impl true
   def config_change(changed, _new, removed) do
-    Area51.Web.Endpoint.config_change(changed, removed)
+    Endpoint.config_change(changed, removed)
     :ok
   end
 
@@ -51,7 +52,7 @@ defmodule Area51.Web.Application do
     )
   end
 
-  defp skip_migrations?() do
+  defp skip_migrations? do
     # By default, sqlite migrations are run when using a release
     System.get_env("RELEASE_NAME") != nil
   end
