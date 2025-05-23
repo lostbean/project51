@@ -1,7 +1,7 @@
 import Config
 
 # Configure your database
-config :area51_data, Area51Data.Repo,
+config :area51, Area51.Data.Repo,
   database: Path.expand("../area51_data_dev.db", __DIR__),
   pool_size: 5,
   stacktrace: true,
@@ -13,7 +13,7 @@ config :area51_data, Area51Data.Repo,
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :area51_web, Area51Web.Endpoint,
+config :area51, Area51.Web.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}, port: 4000],
@@ -22,7 +22,7 @@ config :area51_web, Area51Web.Endpoint,
   debug_errors: true,
   secret_key_base: "o68EN09h0FHarQnGTJuczxgN6atK3NSJ6Vb5j3pPY/x8CqvNk+0c8evPzSa7t372",
   watchers: [
-    node: ["build.js", "--watch", cd: Path.expand("../apps/area51_web/assets", __DIR__)]
+    node: ["build.js", "--watch", cd: Path.expand("../assets", __DIR__)]
   ]
 
 # ## SSL Support
@@ -49,7 +49,7 @@ config :area51_web, Area51Web.Endpoint,
 # different ports.
 
 # Enable dev routes for dashboard and mailbox
-config :area51_web, dev_routes: true
+config :area51, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter,

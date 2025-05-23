@@ -9,7 +9,7 @@ scrape_configs:
 
   # Add a job for the Area51 Phoenix application (if it exposes metrics)
   # Job name needs to match with PromEx module
-  - job_name: 'area51_web'
+  - job_name: 'area51'
     metrics_path: /metrics
     static_configs:
       - targets: ['host.docker.internal:4000']

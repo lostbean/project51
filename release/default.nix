@@ -8,7 +8,7 @@
   ...
 }:
 let
-  pname = "area51_umbrella";
+  pname = "area51";
   inherit version;
   src = ../.;
   mixEnv = "prod";
@@ -33,7 +33,7 @@ let
 
   nodeDeps = pkgs.buildNpmPackage {
     name = "${pname}-node-assets";
-    src = ../apps/area51_web/assets;
+    src = ../assets;
     npmDepsHash = "sha256-IOPrxVLgVKdKOLuDeNhx5ad1RNhAPRXQQwk5PIbSNmE=";
     dontNpmBuild = true;
     inherit nodejs;
@@ -85,8 +85,8 @@ mixRelease {
 
   preBuild = ''
     export HOME=$TMPDIR
-    chmod -R +w apps/area51_web/priv/static/
-    ln -sf ${nodeDeps}/node_modules apps/area51_web/assets/node_modules
+    chmod -R +w priv/static/
+    ln -sf ${nodeDeps}/node_modules assets/node_modules
     mix assets.deploy
   '';
 

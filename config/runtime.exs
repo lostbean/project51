@@ -19,7 +19,7 @@ if config_env() == :prod do
       For example: /etc/area51_data/area51_data.db
       """
 
-  config :area51_data, Area51Data.Repo,
+  config :area51, Area51.Data.Repo,
     database: database_path,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
 
@@ -37,7 +37,7 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  config :area51_web, Area51Web.Endpoint,
+  config :area51, Area51.Web.Endpoint,
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
@@ -51,7 +51,7 @@ if config_env() == :prod do
   # If you are doing OTP releases, you need to instruct Phoenix
   # to start each relevant endpoint:
   #
-  #     config :area51_web, Area51Web.Endpoint, server: true
+  #     config :area51, Area51.Web.Endpoint, server: true
   #
   # Then you can assemble a release by calling `mix release`.
   # See `mix help release` for more information.
@@ -61,7 +61,7 @@ if config_env() == :prod do
   # To get SSL working, you will need to add the `https` key
   # to your endpoint configuration:
   #
-  #     config :area51_web, Area51Web.Endpoint,
+  #     config :area51, Area51.Web.Endpoint,
   #       https: [
   #         ...,
   #         port: 443,
@@ -83,7 +83,7 @@ if config_env() == :prod do
   # We also recommend setting `force_ssl` in your config/prod.exs,
   # ensuring no data is ever sent via http, always redirecting to https:
   #
-  #     config :area51_web, Area51Web.Endpoint,
+  #     config :area51, Area51.Web.Endpoint,
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.

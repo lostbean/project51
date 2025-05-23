@@ -19,6 +19,9 @@ erl_crash.dump
 # Also ignore archive artifacts (built via "mix archive.build").
 *.ez
 
+# Gleam build artifacts
+/gleam_state/
+
 # Temporary files, for example, from tests.
 /tmp/
 
@@ -28,3 +31,10 @@ erl_crash.dump
 
 .direnv
 .env
+
+# Node.js dependencies
+/assets/node_modules/
+
+# Compiled frontend assets (output of esbuild/webpack etc.)
+# Should match the outdir in your assets build configuration (e.g., esbuild in mix.exs)
+/priv/static/assets/

@@ -31,7 +31,7 @@ See the [deep search analysis](./Architecture_Deep_Search.md) a for detailed exp
 
 ```mermaid
 graph TB
-    subgraph "Area 51 Umbrella Application"
+    subgraph "Area 51 Application"
         subgraph "area51_web"
             web_app[Phoenix Web App]--hosts-->assets[React Frontend]
             web_app--uses-->channels[Phoenix Channels]
@@ -82,15 +82,15 @@ graph TB
 
 ### Modularity and Separation of Concerns
 
-The Area 51 project is structured as an Elixir umbrella application, providing clear separation of concerns through its modular design:
+The Area 51 project is structured as a single Elixir application, promoting clear separation of concerns through its modular design using namespaces under the main `Area51` module:
 
--   **area51_core:** Contains the domain models and core game logic, independent of persistence or delivery mechanisms
--   **area51_data:** Handles data persistence using Ecto, defining schemas and database operations
--   **area51_llm:** Encapsulates all LLM integration logic, isolating the complexity of prompt engineering and response handling
--   **area51_web:** Manages HTTP and WebSocket interfaces, focusing on request handling and UI delivery
--   **area51_gleam:** Leverages Gleam for type-safe state modeling with seamless Elixir interop
+-   **Area51.Core:** Contains the domain models and core game logic (formerly the `area51_core` app).
+-   **Area51.Data:** Handles data persistence using Ecto (formerly the `area51_data` app).
+-   **Area51.Llm:** Encapsulates LLM integration logic (formerly the `area51_llm` app).
+-   **Area51.Web:** Manages HTTP and WebSocket interfaces (formerly the `area51_web` app).
+-   **Area51.Gleam:** Leverages Gleam for type-safe state modeling (formerly the `area51_gleam` app).
 
-This modular approach facilitates isolated testing, allows components to evolve independently, and enables the system to scale effectively.
+This modular approach using namespaces within a single application facilitates testing, allows components to evolve with clarity, and supports system scalability.
 
 ### State Management
 
@@ -175,37 +175,49 @@ This polyglot approach leverages each language's strengths while maintaining cle
 
 ```
 area51_investigation/
-├── apps/
-│   ├── area51_core/       # Core game logic
-│   ├── area51_data/       # Data persistence with Ecto & SQLite
-│   ├── area51_gleam/      # Gleam integration
-│   ├── area51_llm/        # LLM integration using Magus
-│   └── area51_web/        # Phoenix web application
-│       ├── assets/        # Frontend assets (React, JavaScript, CSS)
-│       ├── lib/           # Elixir backend code
-│       └── test/          # Backend tests
+├── assets/                # Frontend assets (React, JavaScript, CSS)
 ├── config/                # Application configurations
+├── lib/                   # Elixir application code
+│   └── area51/
+│       ├── core/          # Core game logic
+│       ├── data/          # Data persistence
+│       ├── gleam/         # Gleam integration
+│       ├── llm/           # LLM integration
+│       └── web/           # Phoenix web components (controllers, channels, etc.)
+├── priv/                  # Private application data
+│   ├── gettext/           # Localization files
+│   ├── repo/              # Ecto migrations and seeds
+│   └── static/            # Static assets (favicon, robots.txt, compiled JS/CSS in assets/)
+├── test/                  # Test files
+│   └── area51/
+│       ├── core/
+│       ├── data/
+│       ├── gleam/
+│       ├── llm/
+│       └── web/
 ├── gleam_state/           # Gleam package for state modeling
-├── mix.exs                # Umbrella project configuration
+├── mix.exs                # Project configuration
 └── README.md              # Project documentation
 ```
 
+**Note:** The Mermaid diagram above reflects the old umbrella structure and needs to be manually updated to represent the current single-application architecture with namespaced modules.
+
 ## 🧠 LLM Integration
 
-The `area51_llm` application handles the integration with the Large Language Model using the Magus library. 🚀
+The `Area51.Llm` module handles the integration with the Large Language Model using the Magus library. 🚀
 
 -   **Prompt Engineering:** Carefully crafted prompts guide the LLM to generate narrative elements, clues, and responses that fit the Area 51 theme. 📝
 -   **Structured Output:** The LLM's responses are formatted into structured JSON to facilitate seamless integration with the backend. 📦
 -   **Asynchronous Processing:** LLM interactions are handled asynchronously to maintain application responsiveness. ⏳
 
-**Note:** You'll need to replace the placeholder in `apps/area51_llm/lib/area51_llm/agent.ex` with your actual Magus library code and LLM provider credentials. 🔑
+**Note:** You'll need to replace the placeholder in `lib/area51/llm/agent.ex` with your actual Magus library code and LLM provider credentials. 🔑
 
 ## Deployment
 
 Build a release image with:
 ```bash
 docker load < $(nix build .\#packages.aarch64-linux.image.area51.arm64 --no-link --print-out-paths)
-docker run -e OPENAI_API_KEY=$OPENAI_API_KEY -p 4000:4000 -v area51db:/data area51-umbrella:dirty
+docker run -e OPENAI_API_KEY=$OPENAI_API_KEY -p 4000:4000 -v area51db:/data area51:dirty
 ```
 
 ## 🤝 Contributing
