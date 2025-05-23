@@ -1,27 +1,37 @@
 defmodule Area51.MixProject do
   use Mix.Project
 
+  @app :area51
+  @version "0.1.0"
+
   def project do
     [
-      app: :area51,
-      version: "0.1.0",
-      elixir: "~> 1.18", # Using the highest version specified across apps
+      app: @app,
+      version: @version,
+      elixir: "~> 1.18",
+      name: "#{@app}",
+      archives: [mix_gleam: "~> 0.6.2"],
+      compilers: [:gleam] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
+      erlc_paths: [
+        "build/dev/erlang/#{@app}/_gleam_artefacts",
+        # For Gleam < v0.25.0
+        "build/dev/erlang/#{@app}/build"
+      ],
+      erlc_include_path: "build/dev/erlang/#{@app}/include",
+      # For Elixir >= v1.15.0
+      prune_code_paths: false,
       start_permanent: Mix.env() == :prod,
-      deps: deps(),
       aliases: aliases(),
-      releases: [
-        area51: [
-          applications: [area51: :permanent]
-        ]
-      ]
+      deps: deps()
     ]
   end
 
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      mod: {Area51.Web.Application, []}, # Assuming Area51.Web.Application is the main entry point
+      # Assuming Area51.Web.Application is the main entry point
+      mod: {Area51.Web.Application, []},
       extra_applications: [:logger, :runtime_tools, :tls_certificate_check]
     ]
   end
@@ -33,7 +43,7 @@ defmodule Area51.MixProject do
   defp deps do
     [
       # From area51_core
-      {:jason, "~> 1.4"}, # Updated from 1.2 in data/web to 1.4 from core/gleam
+      {:jason, "~> 1.4"},
 
       # From area51_data
       {:dns_cluster, "~> 0.1.1"},
@@ -42,17 +52,14 @@ defmodule Area51.MixProject do
       {:ecto_sqlite3, ">= 0.0.0"},
 
       # From area51_gleam
-      {:gleam_state, path: "gleam_state/"}, # Adjusted path from ../../gleam_state
+      {:gleam_state, path: "./gleam_state"},
       {:gleam_stdlib, "~> 0.59"},
       {:gleam_json, "~> 2.3.0"},
-      {:gleeunit, "~> 1.0"},
+      {:gleeunit, "~> 1.0", [only: [:dev, :test], runtime: false]},
 
       # From area51_llm
       {:magus, "~> 0.2.0"},
       {:langchain, "~> 0.3.2"},
-      {:opentelemetry, "~> 1.5"}, # Common with web
-      {:opentelemetry_api, "~> 1.4"}, # Common with web
-      {:opentelemetry_semantic_conventions, "~> 1.27"}, # Common with web
 
       # From area51_web
       {:cors_plug, "~> 3.0"},
@@ -74,19 +81,26 @@ defmodule Area51.MixProject do
       {:opentelemetry_bandit, "~> 0.2.0"},
       {:opentelemetry_ecto, "~> 1.2"},
       {:opentelemetry_process_propagator, "~> 0.3"},
-      {:tls_certificate_check, "~> 1.27"}, # Also in extra_applications
+
+      # Also in extra_applications
+      {:opentelemetry, "~> 1.5"},
+      {:opentelemetry_api, "~> 1.4"},
+      {:opentelemetry_semantic_conventions, "~> 1.27"},
+      {:tls_certificate_check, "~> 1.27"},
       {:prom_ex, "~> 1.11.0"},
+
+      # Testing
       {:meck, "~> 1.0", only: :test}
     ]
   end
 
   defp aliases do
     [
+      "deps.get": ["deps.get", "gleam.deps.get"],
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"], # Adjusted path for seeds
+      "ecto.setup": ["ecto.create", "ecto.migrate", "run #{__DIR__}/priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      # Assuming 'assets' directory is at the project root (project51/assets)
       "assets.setup": ["cmd --cd assets npm install"],
       "assets.build": ["cmd --cd assets node build.js"],
       "assets.deploy": ["cmd --cd assets node build.js --deploy", "phx.digest"]

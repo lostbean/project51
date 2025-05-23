@@ -23,93 +23,10 @@
           };
         };
 
-        elixir_with_gleam =
-          final: prev:
-          let
-            elixir-dev = prev.unstable.elixir.overrideAttrs (old: {
-              version = "1.18.1";
-              src = prev.fetchFromGitHub {
-                owner = "Papipo";
-                repo = "elixir";
-                rev = "b64f23a35caa321cc942815d0e47298449a72404";
-                hash = "sha256-LHqMXmUMfjCZfRnKYl8H0DyvnaTB/t0LYvCnIfHeip4=";
-                # rev = "70861671270bf3a999cd506041adb87a2f69b87a";
-                # hash = "sha256-zreJ+gqDo8nvwyAqcelT1ADuAMUnOgJqey826n/XU58=";
-              };
-            });
-            elixir-ls-dev = prev.unstable.elixir-ls.override (old: {
-              mixRelease =
-                args:
-                old.mixRelease (
-                  args
-                  // {
-                    elixir = elixir-dev;
-                  }
-                );
-            });
-            lexical-dev = prev.unstable.lexical.override (old: {
-              elixir = elixir-dev;
-              beamPackages = old.beamPackages // {
-                mixRelease =
-                  args:
-                  old.beamPackages.mixRelease (
-                    args
-                    // {
-                      elixir = elixir-dev;
-                    }
-                  );
-              };
-            });
-            next-ls-dev = prev.unstable.next-ls.override (old: {
-              beamPackages = old.beamPackages // {
-                mixRelease =
-                  args:
-                  old.beamPackages.mixRelease (
-                    args
-                    // {
-                      elixir = elixir-dev;
-                    }
-                  );
-              };
-            });
-          in
-          {
-            inherit
-              elixir-dev
-              elixir-ls-dev
-              lexical-dev
-              next-ls-dev
-              ;
-          };
-
-        gleam_latest_ol = final: prev: {
-          gleam-dev = prev.unstable.gleam.override (old: {
-            rustPlatform = old.rustPlatform // {
-              buildRustPackage =
-                args:
-                old.rustPlatform.buildRustPackage (
-                  args
-                  // {
-                    version = "1.10.0";
-                    src = prev.fetchFromGitHub {
-                      owner = "gleam-lang";
-                      repo = "gleam";
-                      rev = "cbd6c1793196a0e7ea67c57b62fa51b65116d4d5";
-                      hash = "sha256-6ozX+TU07Y6UINsfQ3vmvV/NPfj7W6Nx6aF1RrePWqA=";
-                    };
-                    cargoHash = "sha256-1jZmqLXGAWnAWlFhOV40Lfqwapa/pX/jLFXeKFcxxkQ=";
-                  }
-                );
-            };
-          });
-        };
-
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
             unstable-packages
-            elixir_with_gleam
-            gleam_latest_ol
           ];
         };
 
@@ -119,17 +36,12 @@
           buildInputs =
             with pkgs;
             [
-              gleam-dev
-              elixir-dev
-              elixir-ls-dev
-              # lexical-dev
-              # next-ls-dev
-              # unstable.gleam
-              # unstable.elixir
-              # unstable.elixir-ls
-              # unstable.lexical
-              # unstable.next-ls
+              unstable.gleam
+              unstable.elixir
               unstable.erlang
+              unstable.lexical
+              # unstable.elixir-ls
+              # unstable.next-ls
               rebar3
               nodejs_22
             ]
@@ -173,16 +85,14 @@
                             system = "${nix_arch}-${os}";
                             overlays = [
                               unstable-packages
-                              elixir_with_gleam
-                              gleam_latest_ol
                             ];
                           };
 
                           service = container_pkgs.callPackage ./release {
                             erlang = container_pkgs.unstable.erlang;
+                            elixir = container_pkgs.unstable.elixir;
+                            gleam = container_pkgs.unstable.gleam;
                             nodejs = container_pkgs.nodejs_22;
-                            elixir = container_pkgs.elixir-dev;
-                            gleam = container_pkgs.gleam-dev;
                           };
                         in
                         container_pkgs.callPackage ./release/docker.nix {
