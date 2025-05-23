@@ -90,7 +90,13 @@ defmodule Area51.MixProject do
       {:prom_ex, "~> 1.11.0"},
 
       # Testing
-      {:meck, "~> 1.0", only: :test}
+      {:meck, "~> 1.0", only: :test},
+
+      # Code Quality & Analysis Tools
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.34", runtime: false}
     ]
   end
 
@@ -103,7 +109,18 @@ defmodule Area51.MixProject do
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["cmd --cd assets npm install"],
       "assets.build": ["cmd --cd assets node build.js"],
-      "assets.deploy": ["cmd --cd assets node build.js --deploy", "phx.digest"]
+      "assets.deploy": ["cmd --cd assets node build.js --deploy", "phx.digest"],
+      # Our new check alias
+      check: [
+        "compile",
+        "format --check-formatted",
+        "credo --strict",
+        "dialyzer",
+        "sobelow --exit",
+        "test",
+        # Optional: ensures docs can be built
+        "docs"
+      ]
     ]
   end
 end

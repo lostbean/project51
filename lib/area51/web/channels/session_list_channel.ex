@@ -5,7 +5,6 @@ defmodule Area51.Web.SessionListChannel do
   alias Area51.Web.ChannelInit
   alias Area51LLM.Agent
 
-
   require OpenTelemetry.Tracer
 
   @channel_name "session_list"

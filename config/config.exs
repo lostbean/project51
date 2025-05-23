@@ -60,8 +60,7 @@ config :esbuild,
 config :phoenix, :json_library, Jason
 
 # Configure JWKS for JWT validation
-config :area51, Area51.Web.Auth.Guardian.Strategy,
-  jwks_url: System.get_env("APP_AUTH0_JWKS_URL")
+config :area51, Area51.Web.Auth.Guardian.Strategy, jwks_url: System.get_env("APP_AUTH0_JWKS_URL")
 
 # Configure OpenTelemetry
 config :opentelemetry, :resource, service: %{name: "area51"}
@@ -83,8 +82,7 @@ config :opentelemetry_phoenix, :trace_options,
 config :phoenix, :instrumenters, [OpenTelemetry.Phoenix.Instrumenter]
 
 # Configure Ecto to use OpenTelemetry
-config :area51, Area51.Data.Repo,
-  telemetry_prefix: [:area51_data, :repo]
+config :area51, Area51.Data.Repo, telemetry_prefix: [:area51_data, :repo]
 
 config :opentelemetry_ecto, tracer_id: :area51_tracer
 
