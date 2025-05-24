@@ -1,6 +1,9 @@
 # Start the application so Ecto repos and other OTP apps are running
 Mix.Task.run("app.start", [])
 
+Application.ensure_all_started(:mimic)
+Mimic.copy(Instructor)
+
 ExUnit.start()
 
 # Configure Ecto Sandbox for tests that require the database

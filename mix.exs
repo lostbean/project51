@@ -60,6 +60,9 @@ defmodule Area51.MixProject do
       # From area51_llm
       {:magus, "~> 0.2.0"},
       {:langchain, "~> 0.3.2"},
+      {:reactor, "~> 0.15.2"},
+      {:instructor, "~> 0.1.0"},
+      {:typed_struct, "~> 0.3"},
 
       # From area51_web
       {:cors_plug, "~> 3.0"},
@@ -91,6 +94,7 @@ defmodule Area51.MixProject do
 
       # Testing
       {:meck, "~> 1.0", only: :test},
+      {:mimic, "~> 1.11.2", only: :test},
 
       # Code Quality & Analysis Tools
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
