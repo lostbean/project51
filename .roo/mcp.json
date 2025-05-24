@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "hex-docs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "hexdocs-mcp@0.3.1"
+      ],
+      "alwaysAllow": [
+        "search",
+        "fetch"
+      ]
+    }
+  }
+}

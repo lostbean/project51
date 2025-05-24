@@ -1,14 +1,10 @@
-You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
+ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 
 # Tools
 
 - Use the `hex-docs` MCP tool to information about the library usage, function or module.
 - Prefer command `git ls-files -z | xargs -0 sed -i -e 's/FROM_A/TO_B/g'` batch renaming.
 - Prefer command `mkdir -p some_folder && git mv old_file some_folder/new_files` + edtiting then fully sending the whole file again when reorganizing the file structure.
-
-## Code Quality & DRY Principles
-
-- **Proactively identify duplicate code**: When working across multiple modules, look for duplicate utility functions and consolidate them into shared modules
 
 # Elixir and Phoenix Usage
 
@@ -20,15 +16,8 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 - Context files are usually inside a folder named after the resource (e.g., lib/my_app/users.ex)
 - Schema files are usually inside a folder named after the resource (e.g., lib/my_app/users/user.ex)
 - Prefer keyword-based queries over pipe-based queries
- - For example, use `from(u in User, where: u.age > 18, select: u)` over `User |> where(age: 18) |> select([u], u)`
+  - For example, use `from(u in User, where: u.age > 18, select: u)` over `User |> where(age: 18) |> select([u], u)`
 - Use `dbg/1` to debug code. Add `|> dbg` entries around the error area to narrow the source
-
-## Data Structure & Type Safety
-
-- **Always verify struct patterns**: Use explicit pattern matching like `%Reactor.Step{} = step` to ensure correct data types
-- **Understand library data structures**: Before working with external library data (e.g., Reactor), verify the actual structure (lists vs maps, field names)
-- **Handle argument structures correctly**: When working with step arguments, remember they are lists of `%Reactor.Argument{}` structs, not maps
-- **Use appropriate functions**: Use `length/1` for lists, `map_size/1` for maps - don't mix them up
 
 ## Types
 
@@ -45,7 +34,6 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 - Always wrap the step `run` implementation with `try do .. rescue` logging the stacktrace of unexpected errors and reraising it.
 - RunStepError indicates an error within the implemented `run`  function in that step, sprikle `dbg` around to narrow down the source of the error
 - Use the context to pass read-only data through the steps
-- **Centralize shared utilities**: When building reactors, create shared utility middleware modules to avoid code duplication
 
 ## LLM
 
@@ -67,13 +55,6 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 
 - Using mimic to provide mocking if need, but avoid mocking unless really needed.
 - Always mock external APIs and assume the test environment runs in an isolated sandbox
-
-## Refactoring Best Practices
-
-- **Test continuously during refactoring**: Run `mix test` frequently during large refactoring to catch issues early
-- **Use real execution for integration tests**: When testing middleware/behavior systems, use actual library execution (e.g., `Reactor.run/2`) rather than mocking the underlying system
-- **Verify function arity changes**: When changing function signatures, ensure all callers are updated correctly
-- **Batch similar changes**: Use sed commands for repetitive updates, but verify and fix any malformed results
 
 # General Usage
 
