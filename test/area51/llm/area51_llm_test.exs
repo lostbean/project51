@@ -1,7 +1,7 @@
-defmodule Area51LLMTest do
+defmodule Area51.LLMTest do
   use ExUnit.Case, async: false
-  alias Area51LLM.MysteryAgent
-  alias Area51LLM.Schemas.Mystery
+  alias Area51.LLM.MysteryAgent
+  alias Area51.LLM.Schemas.Mystery
 
   setup do
     # Copy modules that we want to mock
@@ -10,9 +10,9 @@ defmodule Area51LLMTest do
 
     Mimic.stub(Instructor, :chat_completion, fn params ->
       case params[:response_model] do
-        Area51LLM.Schemas.Mystery ->
+        Area51.LLM.Schemas.Mystery ->
           {:ok,
-           %Area51LLM.Schemas.Mystery{
+           %Area51.LLM.Schemas.Mystery{
              title: "The Vanishing Scientists",
              description:
                "Several top-secret researchers have mysteriously disappeared from Area 51's underground laboratories.",

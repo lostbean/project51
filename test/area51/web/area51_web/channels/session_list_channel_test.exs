@@ -130,12 +130,12 @@ defmodule Area51.Web.SessionListChannelTest do
 
     test "create_session handles success case", %{joined_socket: socket} do
       # Make sure Agent module exists before attempting to mock it
-      Code.ensure_loaded(Area51LLM.Agent)
+      Code.ensure_loaded(Area51.LLM.Agent)
 
       # Mock the generate_mystery_with_topic and create_game_session functions
-      :meck.new(Area51LLM.Agent, [:passthrough])
+      :meck.new(Area51.LLM.Agent, [:passthrough])
 
-      :meck.expect(Area51LLM.Agent, :generate_mystery_with_topic, fn _topic ->
+      :meck.expect(Area51.LLM.Agent, :generate_mystery_with_topic, fn _topic ->
         {:ok, %{title: "Space Station Mystery", narrative: "Initial narrative..."}}
       end)
 
@@ -170,19 +170,19 @@ defmodule Area51.Web.SessionListChannelTest do
       )
 
       # Only unload if it was successfully loaded
-      if :meck.validate(Area51LLM.Agent) do
-        :meck.unload(Area51LLM.Agent)
+      if :meck.validate(Area51.LLM.Agent) do
+        :meck.unload(Area51.LLM.Agent)
       end
     end
 
     test "create_session handles error case", %{joined_socket: socket} do
       # Make sure Agent module exists before attempting to mock it
-      Code.ensure_loaded(Area51LLM.Agent)
+      Code.ensure_loaded(Area51.LLM.Agent)
 
       # Mock the generate_mystery_with_topic to return an error
-      :meck.new(Area51LLM.Agent, [:passthrough])
+      :meck.new(Area51.LLM.Agent, [:passthrough])
 
-      :meck.expect(Area51LLM.Agent, :generate_mystery_with_topic, fn _topic ->
+      :meck.expect(Area51.LLM.Agent, :generate_mystery_with_topic, fn _topic ->
         {:error, "LLM service unavailable"}
       end)
 
@@ -204,8 +204,8 @@ defmodule Area51.Web.SessionListChannelTest do
       )
 
       # Only unload if it was successfully loaded
-      if :meck.validate(Area51LLM.Agent) do
-        :meck.unload(Area51LLM.Agent)
+      if :meck.validate(Area51.LLM.Agent) do
+        :meck.unload(Area51.LLM.Agent)
       end
     end
   end

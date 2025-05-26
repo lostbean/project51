@@ -1,4 +1,4 @@
-defmodule Area51LLM.Steps.GenerateNarrativeStep do
+defmodule Area51.LLM.Steps.GenerateNarrativeStep do
   @moduledoc """
   Reactor Step to generate the next part of the game narrative.
   """
@@ -35,7 +35,7 @@ defmodule Area51LLM.Steps.GenerateNarrativeStep do
 
   @impl true
   def run(arguments, _context, _options) do
-    Tracer.with_span "area51_llm.steps.generate_narrative_step" do
+    Tracer.with_span "area51.llm.steps.generate_narrative_step" do
       try do
         narrative_template =
           ~S"""

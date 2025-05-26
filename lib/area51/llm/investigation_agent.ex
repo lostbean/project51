@@ -1,4 +1,4 @@
-defmodule Area51LLM.InvestigationAgent do
+defmodule Area51.LLM.InvestigationAgent do
   @moduledoc """
   An LLM-powered agent that drives the Area 51 investigation game forward.
 
@@ -8,7 +8,7 @@ defmodule Area51LLM.InvestigationAgent do
   `Reactor.Workflow` to orchestrate this multi-step LLM interaction and
   incorporates OpenTelemetry for tracing.
   """
-  alias Area51LLM.Reactors.InvestigationReactor
+  alias Area51.LLM.Reactors.InvestigationReactor
   alias Reactor
 
   require OpenTelemetry.Tracer
@@ -19,7 +19,7 @@ defmodule Area51LLM.InvestigationAgent do
   Generate a narrative response based on the current game state and player input.
   """
   def generate_narrative(narrative, player_input, username) do
-    Tracer.with_span "area51_llm.investigation_agent.generate_narrative", %{
+    Tracer.with_span "area51.llm.investigation_agent.generate_narrative", %{
       attributes: [
         {Trace.AI_REQUEST_MODEL, "investigation_agent"},
         {Trace.AI_REQUEST_USER, username},

@@ -1,4 +1,4 @@
-defmodule Area51LLM.Reactors.InvestigationReactor do
+defmodule Area51.LLM.Reactors.InvestigationReactor do
   @moduledoc """
   Investigation reactor that orchestrates narrative generation and clue extraction.
 
@@ -7,8 +7,8 @@ defmodule Area51LLM.Reactors.InvestigationReactor do
   """
   use Reactor
 
-  alias Area51LLM.Steps.ExtractCluesStep
-  alias Area51LLM.Steps.GenerateNarrativeStep
+  alias Area51.LLM.Steps.ExtractCluesStep
+  alias Area51.LLM.Steps.GenerateNarrativeStep
 
   input(:narrative)
   input(:player_input)

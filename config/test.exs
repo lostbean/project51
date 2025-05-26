@@ -17,8 +17,12 @@ config :area51, Area51.Web.Endpoint,
   secret_key_base: "9KZlnXZUq2rf2KjJILk/+A3uwcAhnAiY+L53wlzDB9J/I8IUW/sbcuVfdtukCKcD",
   server: false
 
-# Print only warnings and errors during test
-config :logger, level: :warning
+# Disable logs during test by default
+config :logger, level: :none
+# If we enable it,
+config :logger, :console,
+  format: "[$level] $message $metadata\n",
+  metadata: :all
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime

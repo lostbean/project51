@@ -1,4 +1,4 @@
-defmodule Area51LLM.MysteryAgent do
+defmodule Area51.LLM.MysteryAgent do
   @moduledoc """
   An agent responsible for generating new mysteries for the Area 51 investigation game
   using a Large Language Model (LLM).
@@ -8,8 +8,8 @@ defmodule Area51LLM.MysteryAgent do
   It can generate mysteries based on a randomly selected type or a specified topic.
   """
 
-  alias Area51LLM.Reactors.MysteryGenerationReactor
-  alias Area51LLM.Schemas.Mystery
+  alias Area51.LLM.Reactors.MysteryGenerationReactor
+  alias Area51.LLM.Schemas.Mystery
 
   require Logger
 

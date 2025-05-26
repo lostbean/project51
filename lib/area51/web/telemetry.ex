@@ -78,7 +78,31 @@ defmodule Area51.Web.Telemetry do
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
-      summary("vm.total_run_queue_lengths.io")
+      summary("vm.total_run_queue_lengths.io"),
+
+      # Reactor Metrics
+      summary("reactor.duration",
+        tags: [:reactor_name, :status],
+        unit: {:native, :millisecond},
+        description: "Duration of reactor execution"
+      ),
+      summary("reactor.step.duration",
+        tags: [:reactor_name, :step_name, :status],
+        unit: {:native, :millisecond},
+        description: "Duration of individual step execution"
+      ),
+      counter("reactor.step.count",
+        tags: [:reactor_name, :step_name, :status],
+        description: "Count of step executions by status"
+      ),
+      counter("reactor.errors",
+        tags: [:reactor_name, :step_name, :error_type],
+        description: "Count of reactor and step errors"
+      ),
+      summary("reactor.async_steps",
+        tags: [:reactor_name],
+        description: "Number of async steps per reactor execution"
+      )
     ]
   end
 

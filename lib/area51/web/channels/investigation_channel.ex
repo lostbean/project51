@@ -1,6 +1,6 @@
 defmodule Area51.Web.InvestigationChannel do
   # Type issue with livestate
-  @dialyzer :no_match
+  @dialyzer {:nowarn_function, [build_new_state_message: 2, build_update_message: 3, join: 3]}
 
   @moduledoc """
   A `LiveState.Channel` that manages the state and interactions for an
@@ -15,9 +15,9 @@ defmodule Area51.Web.InvestigationChannel do
   alias Area51.Data.Clue
   alias Area51.Data.GameSession
   alias Area51.Data.PlayerContribution
+  alias Area51.LLM.Agent
   alias Area51.Web.Auth.Guardian
   alias Area51.Web.ChannelInit
-  alias Area51LLM.Agent
 
   require OpenTelemetry.Tracer
 

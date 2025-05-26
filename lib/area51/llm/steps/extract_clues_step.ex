@@ -1,11 +1,11 @@
-defmodule Area51LLM.Steps.ExtractCluesStep do
+defmodule Area51.LLM.Steps.ExtractCluesStep do
   @moduledoc """
   Reactor Step to extract clues from the generated narrative.
   """
   use Reactor.Step
 
-  alias Area51LLM.Schemas.Clue
-  alias Area51LLM.Schemas.Clues
+  alias Area51.LLM.Schemas.Clue
+  alias Area51.LLM.Schemas.Clues
   alias Instructor
   alias LangChain.PromptTemplate
 
@@ -14,7 +14,7 @@ defmodule Area51LLM.Steps.ExtractCluesStep do
 
   @impl true
   def run(arguments, _context, _options) do
-    Tracer.with_span "area51_llm.steps.extract_clues_step" do
+    Tracer.with_span "area51.llm.steps.extract_clues_step" do
       extract_clues_template =
         ~S"""
         You are an expert at identifying important clues in a narrative.

@@ -1,6 +1,6 @@
 defmodule Area51.Web.SessionListChannel do
   # Type issue with livestate
-  @dialyzer :no_match
+  @dialyzer {:nowarn_function, [build_new_state_message: 2, build_update_message: 3, join: 3]}
 
   @moduledoc """
   A `LiveState.Channel` responsible for managing and broadcasting the list of
@@ -12,9 +12,9 @@ defmodule Area51.Web.SessionListChannel do
   use LiveState.Channel, web_module: Area51.Web
 
   alias Area51.Data.GameSession
+  alias Area51.LLM.Agent
   alias Area51.Web.Auth.Guardian
   alias Area51.Web.ChannelInit
-  alias Area51LLM.Agent
 
   require OpenTelemetry.Tracer
 

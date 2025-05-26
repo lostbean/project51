@@ -1,4 +1,4 @@
-defmodule Area51LLM.Schemas.Clue do
+defmodule Area51.LLM.Schemas.Clue do
   use Ecto.Schema
 
   @moduledoc """
@@ -21,7 +21,7 @@ defmodule Area51LLM.Schemas.Clue do
   end
 end
 
-defmodule Area51LLM.Schemas.ClueItem do
+defmodule Area51.LLM.Schemas.ClueItem do
   use Ecto.Schema
   use Instructor
 
@@ -50,7 +50,7 @@ defmodule Area51LLM.Schemas.ClueItem do
   end
 end
 
-defmodule Area51LLM.Schemas.Clues do
+defmodule Area51.LLM.Schemas.Clues do
   use Ecto.Schema
   use Instructor
 
@@ -65,12 +65,12 @@ defmodule Area51LLM.Schemas.Clues do
 
   @derive {Jason.Encoder, only: [:clues]}
   @type t :: %__MODULE__{
-          clues: list(Area51LLM.Schemas.ClueItem.t())
+          clues: list(Area51.LLM.Schemas.ClueItem.t())
         }
 
   @primary_key false
   embedded_schema do
-    embeds_many :clues, Area51LLM.Schemas.ClueItem, on_replace: :delete
+    embeds_many :clues, Area51.LLM.Schemas.ClueItem, on_replace: :delete
   end
 
   @impl true

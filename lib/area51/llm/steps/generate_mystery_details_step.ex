@@ -1,10 +1,10 @@
-defmodule Area51LLM.Steps.GenerateMysteryDetailsStep do
+defmodule Area51.LLM.Steps.GenerateMysteryDetailsStep do
   @moduledoc """
   Reactor Step to generate mystery details based on theme and difficulty.
   """
   use Reactor.Step
 
-  alias Area51LLM.Schemas.Mystery
+  alias Area51.LLM.Schemas.Mystery
   alias Instructor
   alias LangChain.PromptTemplate
 
@@ -15,7 +15,7 @@ defmodule Area51LLM.Steps.GenerateMysteryDetailsStep do
 
   @impl true
   def run(arguments, _context, _options) do
-    Tracer.with_span "area51_llm.steps.generate_mystery_details_step" do
+    Tracer.with_span "area51.llm.steps.generate_mystery_details_step" do
       try do
         mystery_prompt_template =
           ~S"""

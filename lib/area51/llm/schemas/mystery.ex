@@ -1,4 +1,4 @@
-defmodule Area51LLM.Schemas.Mystery do
+defmodule Area51.LLM.Schemas.Mystery do
   use Ecto.Schema
   use Instructor
 

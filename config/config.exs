@@ -33,7 +33,9 @@ config :area51, Area51.Web.Endpoint,
   }
 
 # Configures Elixir's Logger
-config :logger, :default_formatter, metadata: [:error_code, :file, :request_id]
+config :logger, :console,
+  format: "$time [$level] $message $metadata\n",
+  metadata: [:mfa, :pid, :crash_reason, :initial_call, :application]
 
 config :area51, Area51.Web.PromEx,
   disabled: false,

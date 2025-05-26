@@ -54,10 +54,9 @@ config :area51, dev_routes: true
 config :area51, Area51.Web.Endpoint, secure_browser_headers: %{}
 
 # Do not include metadata nor timestamps in development logs
-config :logger, :default_formatter,
-  format: "[$level] $message\n",
-  # Allow request_id as it's used in channels
-  metadata: [:request_id]
+config :logger, :console,
+  format: "[$level] $message $metadata\n",
+  metadata: :all
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime

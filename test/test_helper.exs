@@ -3,6 +3,8 @@ Mix.Task.run("app.start", [])
 
 Application.ensure_all_started(:mimic)
 Mimic.copy(Instructor)
+Mimic.copy(OpenTelemetry.Tracer)
+Mimic.copy(OpenTelemetry.Ctx)
 
 ExUnit.start()
 
