@@ -1,18 +1,18 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Tempo - Distributed tracing backend
   tempo:
     image: grafana/tempo:latest
     container_name: tempo
-    command: [ "-config.file=/etc/tempo.yaml" ]
+    command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ${PWD}/observability/tempo/tempo.yaml:/etc/tempo.yaml
       # - tempo_data:/data/tempo/
     ports:
-      - "3200:3200"   # Tempo
-      - "4318:4318"   # OTLP HTTP Receiver
-      - "4317:4317"   # OTLP gRPC Receiver
+      - "3200:3200" # Tempo
+      - "4318:4318" # OTLP HTTP Receiver
+      - "4317:4317" # OTLP gRPC Receiver
     networks:
       - observability
 
@@ -24,10 +24,10 @@ services:
       - ${PWD}/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
     ports:
       - "9090:9090"
     networks:
@@ -62,7 +62,7 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
     ports:
-      - "3000:3000"
+      - "3300:3000"
     networks:
       - observability
     depends_on:
