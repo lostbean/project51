@@ -81,27 +81,33 @@ defmodule Area51.Web.Telemetry do
       summary("vm.total_run_queue_lengths.io"),
 
       # Reactor Metrics
-      summary("reactor.duration",
+      summary("reactor.stop.duration",
         tags: [:reactor_name, :status],
         unit: {:native, :millisecond},
         description: "Duration of reactor execution"
       ),
-      summary("reactor.step.duration",
-        tags: [:reactor_name, :step_name, :status],
+      summary("reactor.step.run.stop.step_duration",
+        tags: [:reactor_name, :step_name, :status, :number_of_retries],
         unit: {:native, :millisecond},
-        description: "Duration of individual step execution"
+        description: "Duration of step run execution"
       ),
-      counter("reactor.step.count",
-        tags: [:reactor_name, :step_name, :status],
-        description: "Count of step executions by status"
+      summary("reactor.step.compensate.stop.step_duration",
+        tags: [:reactor_name, :step_name, :status, :number_of_retries],
+        unit: {:native, :millisecond},
+        description: "Duration of step compensation"
       ),
-      counter("reactor.errors",
-        tags: [:reactor_name, :step_name, :error_type],
-        description: "Count of reactor and step errors"
+      summary("reactor.step.undo.stop.step_duration",
+        tags: [:reactor_name, :step_name, :status, :number_of_retries],
+        unit: {:native, :millisecond},
+        description: "Duration of step undo operation"
       ),
-      summary("reactor.async_steps",
-        tags: [:reactor_name],
-        description: "Number of async steps per reactor execution"
+      counter("reactor.start",
+        tags: [:reactor_name, :status],
+        description: "Count of reactor starts"
+      ),
+      counter("reactor.stop",
+        tags: [:reactor_name, :status],
+        description: "Count of reactor completions by status"
       )
     ]
   end

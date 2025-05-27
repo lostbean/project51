@@ -61,7 +61,7 @@ config :area51, Reactor.Middleware.StructuredLoggingMiddleware,
 
 config :area51, Reactor.Middleware.TelemetryEventsMiddleware,
   enabled: true,
-  event_prefix: [:my_app, :reactor],
+  event_prefix: [:reactor],
   include_metadata: true
 ```
 

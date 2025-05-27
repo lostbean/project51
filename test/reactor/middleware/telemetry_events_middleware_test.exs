@@ -13,11 +13,12 @@ defmodule Reactor.Middleware.TelemetryEventsMiddlewareTest do
         [:custom, :prefix, :start],
         [:reactor, :start],
         [:reactor, :stop],
-        [:reactor, :error],
-        [:reactor, :halt],
-        [:reactor, :step, :run_start],
-        [:reactor, :step, :run_complete],
-        [:reactor, :step, :run_error]
+        [:reactor, :step, :run, :start],
+        [:reactor, :step, :run, :stop],
+        [:reactor, :step, :compensate, :start],
+        [:reactor, :step, :compensate, :stop],
+        [:reactor, :step, :undo, :start],
+        [:reactor, :step, :undo, :stop]
       ],
       fn event, measurements, metadata, _config ->
         send(test_pid, {:telemetry_event, event, measurements, metadata})
@@ -75,19 +76,19 @@ defmodule Reactor.Middleware.TelemetryEventsMiddlewareTest do
 
       assert :ok = TelemetryEventsMiddleware.event(:run_start, step, context)
 
-      assert_receive {:telemetry_event, [:reactor, :step, :run_start], measurements, metadata}
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :start], measurements, metadata}
 
       assert Map.has_key?(measurements, :system_time)
       assert metadata.reactor_name == "TestReactor"
       assert metadata.step_name == :test_step
-      assert metadata.event_type == :run_start
+      assert metadata.status == :ongoing
 
       assert :ok = TelemetryEventsMiddleware.event(:run_complete, step, context)
 
-      assert_receive {:telemetry_event, [:reactor, :step, :run_complete], measurements, metadata}
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :stop], measurements, metadata}
 
       assert metadata.step_name == :test_step
-      assert metadata.event_type == :run_complete
+      assert metadata.status == :success
     end
 
     test "no events when disabled" do
@@ -151,7 +152,7 @@ defmodule Reactor.Middleware.TelemetryEventsMiddlewareTest do
 
       assert {:error, ^error} = TelemetryEventsMiddleware.error(error, context)
 
-      assert_receive {:telemetry_event, [:reactor, :error], measurements, metadata}
+      assert_receive {:telemetry_event, [:reactor, :stop], measurements, metadata}
       assert Map.has_key?(measurements, :duration)
       assert metadata.reactor_name == "TestReactor"
       assert metadata.status == :error
@@ -181,7 +182,7 @@ defmodule Reactor.Middleware.TelemetryEventsMiddlewareTest do
       assert {:ok, updated_context} = TelemetryEventsMiddleware.halt(context)
       assert Map.has_key?(updated_context, :telemetry_cleaned)
 
-      assert_receive {:telemetry_event, [:reactor, :halt], measurements, metadata}
+      assert_receive {:telemetry_event, [:reactor, :stop], measurements, metadata}
       assert Map.has_key?(measurements, :duration)
       assert metadata.reactor_name == "TestReactor"
     end

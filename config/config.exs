@@ -65,7 +65,7 @@ config :area51, Reactor.Middleware.StructuredLoggingMiddleware,
 
 config :area51, Reactor.Middleware.TelemetryEventsMiddleware,
   enabled: true,
-  event_prefix: [:are51, :reactor],
+  event_prefix: [:reactor],
   include_metadata: true
 
 # Configure LiveState

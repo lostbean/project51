@@ -8,6 +8,7 @@ defmodule Area51.Web.PromEx do
   """
   use PromEx, otp_app: :area51
 
+  alias Area51.Web.PromEx.Plugins.ReactorPlugin
   alias PromEx.Plugins
 
   @impl true
@@ -17,7 +18,9 @@ defmodule Area51.Web.PromEx do
       Plugins.Application,
       Plugins.Beam,
       {Plugins.Phoenix, router: Area51.Web.Router, endpoint: Area51.Web.Endpoint},
-      {Plugins.Ecto, repos: [Area51.Data.Repo]}
+      {Plugins.Ecto, repos: [Area51.Data.Repo]},
+      # Custom plugins
+      ReactorPlugin
     ]
   end
 

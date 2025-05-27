@@ -144,15 +144,12 @@ defmodule Reactor.Middleware.IntegrationTest do
       [
         [:reactor, :start],
         [:reactor, :stop],
-        [:reactor, :halt],
-        [:reactor, :error],
-        [:reactor, :step, :run_start],
-        [:reactor, :step, :run_complete],
-        [:reactor, :step, :run_error],
-        [:reactor, :step, :undo_start],
-        [:reactor, :step, :undo_complete],
-        [:reactor, :step, :compensate_start],
-        [:reactor, :step, :compensate_complete]
+        [:reactor, :step, :run, :start],
+        [:reactor, :step, :run, :stop],
+        [:reactor, :step, :compensate, :start],
+        [:reactor, :step, :compensate, :stop],
+        [:reactor, :step, :undo, :start],
+        [:reactor, :step, :undo, :stop]
       ],
       fn event, measurements, metadata, _config ->
         send(test_pid, {:telemetry_event, event, measurements, metadata})
@@ -194,11 +191,13 @@ defmodule Reactor.Middleware.IntegrationTest do
       assert_receive {:telemetry_event, [:reactor, :start], _, metadata}
       assert metadata.reactor_name == "Elixir.Reactor.Middleware.IntegrationTest.SuccessfulReactor"
 
-      assert_receive {:telemetry_event, [:reactor, :step, :run_start], _, metadata}
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :start], _, metadata}
       assert metadata.step_name == :test_step
+      assert metadata.status == :ongoing
 
-      assert_receive {:telemetry_event, [:reactor, :step, :run_complete], _, metadata}
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :stop], _, metadata}
       assert metadata.step_name == :test_step
+      assert metadata.status == :success
 
       assert_receive {:telemetry_event, [:reactor, :stop], _, metadata}
       assert metadata.reactor_name == "Elixir.Reactor.Middleware.IntegrationTest.SuccessfulReactor"
@@ -225,9 +224,10 @@ defmodule Reactor.Middleware.IntegrationTest do
 
       # Verify telemetry events
       assert_receive {:telemetry_event, [:reactor, :start], _, _}
-      assert_receive {:telemetry_event, [:reactor, :step, :run_start], _, _}
-      assert_receive {:telemetry_event, [:reactor, :step, :run_error], _, _}
-      assert_receive {:telemetry_event, [:reactor, :error], _, metadata}
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :start], _, _}
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :stop], _, metadata}
+      assert metadata.status == :error
+      assert_receive {:telemetry_event, [:reactor, :stop], _, metadata}
       assert metadata.status == :error
     end
 
@@ -282,24 +282,25 @@ defmodule Reactor.Middleware.IntegrationTest do
 
       # Verify telemetry events for compensation
       assert_receive {:telemetry_event, [:reactor, :start], _, _}
-      assert_receive {:telemetry_event, [:reactor, :step, :run_start], _, metadata}
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :start], _, metadata}
       assert metadata.step_name == :compensatable_step
-      assert_receive {:telemetry_event, [:reactor, :step, :run_complete], _, metadata}
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :stop], _, metadata}
       assert metadata.step_name == :compensatable_step
-      assert_receive {:telemetry_event, [:reactor, :step, :run_start], _, metadata}
+      assert metadata.status == :success
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :start], _, metadata}
       assert metadata.step_name == :failing_step
-      assert_receive {:telemetry_event, [:reactor, :step, :run_error], _, metadata}
-      assert metadata.step_name == :failing_step
-
-      assert_receive {:telemetry_event, [:reactor, :step, :compensate_start], _, metadata}
-
+      assert_receive {:telemetry_event, [:reactor, :step, :run, :stop], _, metadata}
       assert metadata.step_name == :failing_step
 
-      assert_receive {:telemetry_event, [:reactor, :step, :compensate_complete], _, metadata}
-
+      assert_receive {:telemetry_event, [:reactor, :step, :compensate, :start], _, metadata}
       assert metadata.step_name == :failing_step
+      assert metadata.status == :ongoing
 
-      assert_receive {:telemetry_event, [:reactor, :error], _, metadata}
+      assert_receive {:telemetry_event, [:reactor, :step, :compensate, :stop], _, metadata}
+      assert metadata.step_name == :failing_step
+      assert metadata.status == :success
+
+      assert_receive {:telemetry_event, [:reactor, :stop], _, metadata}
       assert metadata.status == :error
     end
 
@@ -330,8 +331,9 @@ defmodule Reactor.Middleware.IntegrationTest do
 
       # Verify telemetry events
       assert_receive {:telemetry_event, [:reactor, :start], _, _}
-      assert_receive {:telemetry_event, [:reactor, :halt], _, metadata}
+      assert_receive {:telemetry_event, [:reactor, :stop], _, metadata}
       assert metadata.reactor_name == "HaltTestReactor"
+      assert metadata.status == :halt
     end
   end
 

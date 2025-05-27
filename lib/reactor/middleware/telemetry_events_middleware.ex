@@ -12,18 +12,21 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
 
   ### Reactor Events
   - `[:reactor, :start]` - Reactor execution starts
-  - `[:reactor, :stop]` - Reactor execution completes successfully
-  - `[:reactor, :error]` - Reactor execution fails
-  - `[:reactor, :halt]` - Reactor execution is halted
+  - `[:reactor, :stop]` - Reactor execution stops
+
+  With `:status` metadata `[:success, :error, :halt, :ongoing]`
 
   ### Step Events
-  - `[:reactor, :step, :run_start]` - Step execution starts
-  - `[:reactor, :step, :run_complete]` - Step execution completes
-  - `[:reactor, :step, :run_error]` - Step execution fails
-  - `[:reactor, :step, :compensate_start]` - Step compensation starts
-  - `[:reactor, :step, :compensate_complete]` - Step compensation completes
-  - `[:reactor, :step, :undo_start]` - Step undo starts
-  - `[:reactor, :step, :undo_complete]` - Step undo completes
+  - `[:reactor, :step, :start]` - Step process starts
+  - `[:reactor, :step, :run, :start]` - Step execution starts
+  - `[:reactor, :step, :compensate, :start]` - Step compensation starts
+  - `[:reactor, :step, :undo, :start]` - Step undo starts
+  - `[:reactor, :step, :stop]` - Step process starts
+  - `[:reactor, :step, :run, :stop]` - Step execution stops
+  - `[:reactor, :step, :compensate, :stop]` - Step compensation stops
+  - `[:reactor, :step, :undo, :stop]` - Step undo stops
+
+  With `:status` metadata `[:success, :error, :retry, :ongoing]` and `:number_of_retries` for tracking retry attempts
 
   ## Configuration
 
@@ -53,8 +56,10 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
   @default_event_prefix [:reactor]
 
   @start_events [:process_start, :run_start, :compensate_start, :undo_start]
-  @end_events [:process_terminate, :run_complete, :run_halt, :compensate_complete, :undo_complete]
-  @error_events [:run_retry, :compensate_retry, :undo_retry]
+  @complete_events [:process_terminate, :run_complete, :compensate_complete, :undo_complete]
+  @error_events [:run_error, :compensate_error, :undo_error]
+  @retry_events [:run_retry, :compensate_retry, :undo_retry]
+  @halt_events [:run_halt]
 
   @impl true
   def init(context) do
@@ -73,6 +78,7 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
 
             metadata = %{
               reactor_name: reactor_name,
+              status: :ongoing,
               pid: self(),
               node: node()
             }
@@ -167,7 +173,7 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
 
             metadata = build_error_metadata(reactor_name, error, context)
 
-            event_name = get_event_prefix() ++ [:error]
+            event_name = get_event_prefix() ++ [:stop]
             :telemetry.execute(event_name, measurements, metadata)
 
             {:error, error}
@@ -198,11 +204,12 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
             metadata = %{
               reactor_name: reactor_name,
               halt_reason: Map.get(context, :halt_reason, "unknown"),
+              status: :halt,
               pid: self(),
               node: node()
             }
 
-            event_name = get_event_prefix() ++ [:halt]
+            event_name = get_event_prefix() ++ [:stop]
             :telemetry.execute(event_name, measurements, metadata)
 
             {:ok, Map.put(context, :telemetry_cleaned, true)}
@@ -215,6 +222,18 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
     )
   end
 
+  def list_all_event_names() do
+    [
+      @complete_events,
+      @error_events,
+      @halt_events,
+      @retry_events,
+      @start_events
+    ]
+    |> Enum.concat()
+    |> Enum.map(&build_step_event_name/1)
+  end
+
   # Private functions
 
   defp emit_step_event(event_type, step, context) do
@@ -223,7 +242,7 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
     measurements = build_step_measurements(event_type, step, context)
     metadata = build_step_metadata(event_type, step, reactor_name, context)
 
-    event_name = get_event_prefix() ++ [:step, event_type]
+    event_name = build_step_event_name(event_type)
     :telemetry.execute(event_name, measurements, metadata)
     :ok
   end
@@ -245,16 +264,65 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
         Utils.store_step_start_time(step.name)
         Map.put(base_measurements, :step_start_time, System.monotonic_time())
 
-      event in @end_events ->
-        step_duration = Utils.calculate_step_duration(step, context)
-        Map.put(base_measurements, :step_duration, step_duration)
-
-      event in @error_events ->
+      event in (@complete_events ++ @error_events ++ @retry_events ++ @halt_events) ->
         step_duration = Utils.calculate_step_duration(step, context)
         Map.put(base_measurements, :step_duration, step_duration)
 
       true ->
         base_measurements
+    end
+  end
+
+  defp build_step_event_name(event_type) do
+    case event_type do
+      :process_start ->
+        get_event_prefix() ++ [:step, :start]
+
+      :process_terminate ->
+        get_event_prefix() ++ [:step, :start]
+
+      :run_start ->
+        get_event_prefix() ++ [:step, :run, :start]
+
+      :run_complete ->
+        get_event_prefix() ++ [:step, :run, :stop]
+
+      :run_error ->
+        get_event_prefix() ++ [:step, :run, :stop]
+
+      :run_retry ->
+        get_event_prefix() ++ [:step, :run, :stop]
+
+      :run_halt ->
+        get_event_prefix() ++ [:step, :run, :stop]
+
+      :compensate_start ->
+        get_event_prefix() ++ [:step, :compensate, :start]
+
+      :compensate_complete ->
+        get_event_prefix() ++ [:step, :compensate, :stop]
+
+      :compensate_error ->
+        get_event_prefix() ++ [:step, :compensate, :stop]
+
+      :compensate_retry ->
+        get_event_prefix() ++ [:step, :compensate, :stop]
+
+      :undo_start ->
+        get_event_prefix() ++ [:step, :undo, :start]
+
+      :undo_complete ->
+        get_event_prefix() ++ [:step, :undo, :stop]
+
+      :undo_error ->
+        get_event_prefix() ++ [:step, :undo, :stop]
+
+      :undo_retry ->
+        get_event_prefix() ++ [:step, :undo, :stop]
+
+      _ ->
+        Logger.warning("unmateched reactor event: #{inspect(event_type)}")
+        get_event_prefix() ++ [:step, :unknown, :stop]
     end
   end
 
@@ -264,7 +332,8 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
       step_name: step.name,
       step_impl: step.impl,
       step_async: step.async?,
-      event_type: event_type,
+      status: determine_step_status(event_type),
+      number_of_retries: get_retry_count(event_type, step, context),
       pid: self(),
       node: node()
     }
@@ -289,40 +358,61 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
 
       :run_complete ->
         %{
-          step_status: "success"
+          status: "success"
         }
 
       :run_error ->
         %{
-          step_status: "error"
+          status: "error",
+          error_type: :step_run_error
         }
 
       :compensate_start ->
         %{
           operation: "compensate",
-          step_status: "compensating"
+          status: "compensating"
         }
 
       :compensate_complete ->
         %{
           operation: "compensate",
-          step_status: "compensated"
+          status: "compensated"
         }
 
       :undo_start ->
         %{
           operation: "undo",
-          step_status: "undoing"
+          status: "undoing"
         }
 
       :undo_complete ->
         %{
           operation: "undo",
-          step_status: "undone"
+          status: "undone"
         }
 
       _ ->
         %{}
+    end
+  end
+
+  defp determine_step_status(event_type) do
+    cond do
+      event_type in @start_events -> :ongoing
+      event_type in @complete_events -> :success
+      event_type in @error_events -> :error
+      event_type in @retry_events -> :retry
+      event_type in @halt_events -> :halt
+      true -> :unknown
+    end
+  end
+
+  defp get_retry_count(event_type, step, context) do
+    if event_type in @retry_events do
+      # Try to get retry count from context or step, defaulting to 0
+      Map.get(context, "#{step.name}_retry_count", 0)
+    else
+      0
     end
   end
 
