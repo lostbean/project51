@@ -31,9 +31,9 @@
 - Use [Reactor](https://hexdocs.pm/reactor/getting-started-with-reactor.html) to create composable workflows like LLM agent/worflows or other workflows that forms process DAG.
 - Split each reactor and step into its own module. Organize them into into non-hierarchical folders `steps` and `reactors` (for better composability)
 - Use the DSL behaviors to create reactor and steps. Always define the inputs of the reactors, and precisely define the arguments used by each steps.
-- Always wrap the step `run` implementation with `try do .. rescue` logging the stacktrace of unexpected errors and reraising it.
-- RunStepError indicates an error within the implemented `run`  function in that step, sprikle `dbg` around to narrow down the source of the error
-- Use the context to pass read-only data through the steps
+- When implementing `Reactor.Step` modules, wrap the main logic within the `run/3` callback in a `try/rescue` block. In the `rescue` clause, log the full stack trace using `Exception.format(:error, error, __STACKTRACE__) |> Logger.warning()` and then return `{:error, err}`.
+- `RunStepError` indicates an error within the implemented `run/3` function in that step; sprinkle `dbg/1` calls around the error area to narrow down the source.
+- Use the context to pass read-only data through the steps.
 
 ## LLM
 
