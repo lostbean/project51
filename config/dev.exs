@@ -58,6 +58,8 @@ config :logger, :console,
   format: "[$level] $message $metadata\n",
   metadata: :all
 
+config :area51, Area51.Web.PromEx, grafana: [host: "http://localhost:3000"]
+
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 

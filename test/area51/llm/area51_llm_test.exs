@@ -173,7 +173,7 @@ defmodule Area51.LLMTest do
       result = MysteryAgent.generate_mystery("test topic")
 
       assert {:error, error_message} = result
-      assert String.contains?(error_message, "Exception occurred during mystery generation")
+      assert String.contains?(inspect(error_message), "Something went wrong")
     end
   end
 end

@@ -9,57 +9,48 @@ defmodule Area51.LLM.Steps.ExtractCluesStep do
   alias Instructor
   alias LangChain.PromptTemplate
 
-  require OpenTelemetry.Tracer
-  alias OpenTelemetry.Tracer
+  require Logger
 
   @impl true
   def run(arguments, _context, _options) do
-    Tracer.with_span "area51.llm.steps.extract_clues_step" do
-      extract_clues_template =
-        ~S"""
-        You are an expert at identifying important clues in a narrative.
+    extract_clues_template =
+      ~S"""
+      You are an expert at identifying important clues in a narrative.
 
-        Here is the latest part of an Area 51 investigation narrative:
-        <%= @narrative_response %>
+      Here is the latest part of an Area 51 investigation narrative:
+      <%= @narrative_response %>
 
-        Identify any new clues or important pieces of information that were revealed in this narrative.
-        A clue is any detail that might help investigators uncover the secrets of Area 51.
+      Identify any new clues or important pieces of information that were revealed in this narrative.
+      A clue is any detail that might help investigators uncover the secrets of Area 51.
 
-        If no clues were revealed, return an empty array.
-        """
-        |> PromptTemplate.from_template!()
+      If no clues were revealed, return an empty array.
+      """
+      |> PromptTemplate.from_template!()
 
-      start_time = System.monotonic_time()
-      message_content = PromptTemplate.to_message!(extract_clues_template, arguments).content
+    message_content = PromptTemplate.to_message!(extract_clues_template, arguments).content
 
-      case Instructor.chat_completion(
-             model: "gpt-4o",
-             response_model: Clues,
-             messages: [
-               %{
-                 role: "user",
-                 content: message_content
-               }
-             ]
-           ) do
-        {:ok, %Clues{clues: clues_list}} ->
-          clues = Enum.map(clues_list, &%Clue{content: &1.content})
-          end_time = System.monotonic_time()
-          duration_ms = System.convert_time_unit(end_time - start_time, :native, :millisecond)
+    case Instructor.chat_completion(
+           model: "gpt-4o",
+           response_model: Clues,
+           messages: [
+             %{
+               role: "user",
+               content: message_content
+             }
+           ]
+         ) do
+      {:ok, %Clues{clues: clues_list}} ->
+        clues = Enum.map(clues_list, &%Clue{content: &1.content})
+        # Return both narrative_response and clues as expected by the investigation agent
+        {:ok, %{narrative_response: arguments.narrative_response, clues: clues}}
 
-          Tracer.set_attributes([
-            {:"llm.extract_clues.duration_ms", duration_ms},
-            {:"llm.extract_clues.count", length(clues)}
-          ])
-
-          # Return both narrative_response and clues as expected by the investigation agent
-          {:ok, %{narrative_response: arguments.narrative_response, clues: clues}}
-
-        {:error, reason} ->
-          Tracer.set_attributes([{:"llm.error", inspect(reason)}])
-          # Return empty clues on error
-          {:ok, %{narrative_response: arguments.narrative_response, clues: []}}
-      end
+      {:error, _reason} ->
+        # Return empty clues on error. The middleware will log the original error.
+        {:ok, %{narrative_response: arguments.narrative_response, clues: []}}
     end
+  rescue
+    e ->
+      Exception.format(:error, e, __STACKTRACE__) |> Logger.warning()
+      {:error, e}
   end
 end

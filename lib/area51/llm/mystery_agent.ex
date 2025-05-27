@@ -39,34 +39,28 @@ defmodule Area51.LLM.MysteryAgent do
     # Use a default difficulty for backward compatibility
     difficulty = "medium"
 
-    try do
-      case Reactor.run(MysteryGenerationReactor, %{theme: theme, difficulty: difficulty}) do
-        {:ok, %Mystery{} = mystery} ->
-          # Transform the Mystery struct to match the expected return format for backward compatibility
-          {:ok,
-           %{
-             title: mystery.title,
-             description: mystery.description,
-             solution: mystery.solution,
-             starting_narrative: mystery.narrative
-           }}
+    case Reactor.run(MysteryGenerationReactor, %{theme: theme, difficulty: difficulty}) do
+      {:ok, %Mystery{} = mystery} ->
+        # Transform the Mystery struct to match the expected return format for backward compatibility
+        {:ok,
+         %{
+           title: mystery.title,
+           description: mystery.description,
+           solution: mystery.solution,
+           starting_narrative: mystery.narrative
+         }}
 
-        {:error, reason} ->
-          Logger.error("Failed to generate mystery: #{inspect(reason)}")
-          {:error, reason}
+      {:error, reason} ->
+        {:error, reason}
 
-        other ->
-          Logger.error("Unexpected result from MysteryGenerationReactor: #{inspect(other)}")
-          {:error, "Unexpected result from mystery generation"}
-      end
-    rescue
-      e ->
-        Logger.error(
-          "Exception in generate_mystery: #{inspect(e)}\nStacktrace: #{inspect(__STACKTRACE__)}"
-        )
-
-        {:error, "Exception occurred during mystery generation: #{inspect(e)}"}
+      other ->
+        Logger.warning("Unexpected result from MysteryGenerationReactor: #{inspect(other)}")
+        {:error, "Unexpected result from mystery generation"}
     end
+  rescue
+    e ->
+      Exception.format(:error, e, __STACKTRACE__) |> Logger.warning()
+      {:error, e}
   end
 
   @doc """

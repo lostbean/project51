@@ -45,6 +45,29 @@ config :area51, Area51.Web.PromEx,
   grafana: [host: "http://grafana:3000"],
   metrics_server: :disabled
 
+config :area51, Reactor.Middleware.OpenTelemetryMiddleware,
+  enabled: true,
+  span_attributes: [
+    service_name: "area51",
+    service_version: "1.0.0"
+  ],
+  # For security
+  include_arguments: true,
+  # For security
+  include_results: true
+
+config :area51, Reactor.Middleware.StructuredLoggingMiddleware,
+  enabled: true,
+  log_level: :info,
+  include_arguments: true,
+  include_results: true,
+  max_argument_size: 1000
+
+config :area51, Reactor.Middleware.TelemetryEventsMiddleware,
+  enabled: true,
+  event_prefix: [:are51, :reactor],
+  include_metadata: true
+
 # Configure LiveState
 config :live_state,
   otp_app: :area51

@@ -5,7 +5,18 @@ defmodule Area51.LLM.Reactors.InvestigationReactor do
   This reactor takes narrative context, player input, and username as inputs,
   generates a narrative response, extracts clues from it, and returns both.
   """
+  require Logger
+  require Reactor.Middleware.OpenTelemetryMiddleware
+  require Reactor.Middleware.StructuredLoggingMiddleware
+  require Reactor.Middleware.TelemetryEventsMiddleware
+
   use Reactor
+
+  middlewares do
+    middleware Reactor.Middleware.OpenTelemetryMiddleware
+    middleware Reactor.Middleware.StructuredLoggingMiddleware
+    middleware Reactor.Middleware.TelemetryEventsMiddleware
+  end
 
   alias Area51.LLM.Steps.ExtractCluesStep
   alias Area51.LLM.Steps.GenerateNarrativeStep

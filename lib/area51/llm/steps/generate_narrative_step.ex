@@ -7,8 +7,7 @@ defmodule Area51.LLM.Steps.GenerateNarrativeStep do
   alias Instructor
   alias LangChain.PromptTemplate
 
-  require OpenTelemetry.Tracer
-  alias OpenTelemetry.Tracer
+  require Logger
 
   defmodule Narrative do
     @moduledoc """
@@ -35,57 +34,44 @@ defmodule Area51.LLM.Steps.GenerateNarrativeStep do
 
   @impl true
   def run(arguments, _context, _options) do
-    Tracer.with_span "area51.llm.steps.generate_narrative_step" do
-      try do
-        narrative_template =
-          ~S"""
-          You are the game master for an Area 51 investigation role-playing game. The players are a team of investigators
-          trying to uncover the secrets of Area 51.
+    narrative_template =
+      ~S"""
+      You are the game master for an Area 51 investigation role-playing game. The players are a team of investigators
+      trying to uncover the secrets of Area 51.
 
-          Current narrative:
-          <%= @narrative %>
+      Current narrative:
+      <%= @narrative %>
 
-          Player <%= @username %> has just contributed:
-          <%= @player_input %>
+      Player <%= @username %> has just contributed:
+      <%= @player_input %>
 
-          Generate the next part of the narrative that continues the story based on this input.
-          Your response should be engaging, mysterious and advance the investigation in a logical way.
-          Include interesting details about Area 51, possible alien encounters, or government secrets
-          when appropriate.
+      Generate the next part of the narrative that continues the story based on this input.
+      Your response should be engaging, mysterious and advance the investigation in a logical way.
+      Include interesting details about Area 51, possible alien encounters, or government secrets
+      when appropriate.
 
-          Keep your response to 2-3 paragraphs maximum.
-          """
-          |> PromptTemplate.from_template!()
+      Keep your response to 2-3 paragraphs maximum.
+      """
+      |> PromptTemplate.from_template!()
 
-        start_time = System.monotonic_time()
-        message_content = PromptTemplate.to_message!(narrative_template, arguments).content
+    message_content = PromptTemplate.to_message!(narrative_template, arguments).content
 
-        {:ok, %Narrative{narrative: content}} =
-          Instructor.chat_completion(
-            model: "gpt-4o",
-            response_model: Narrative,
-            messages: [
-              %{
-                role: "user",
-                content: message_content
-              }
-            ]
-          )
+    {:ok, %Narrative{narrative: content}} =
+      Instructor.chat_completion(
+        model: "gpt-4o",
+        response_model: Narrative,
+        messages: [
+          %{
+            role: "user",
+            content: message_content
+          }
+        ]
+      )
 
-        end_time = System.monotonic_time()
-        duration_ms = System.convert_time_unit(end_time - start_time, :native, :millisecond)
-
-        Tracer.set_attributes([
-          {:"llm.narrative.duration_ms", duration_ms},
-          {:"llm.narrative.length", String.length(to_string(content))}
-        ])
-
-        {:ok, content}
-      rescue
-        e ->
-          :logger.error(Exception.format(:error, e, __STACKTRACE__))
-          reraise e, __STACKTRACE__
-      end
-    end
+    {:ok, content}
+  rescue
+    e ->
+      Exception.format(:error, e, __STACKTRACE__) |> Logger.warning()
+      {:error, e}
   end
 end

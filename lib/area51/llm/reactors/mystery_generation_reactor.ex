@@ -16,9 +16,9 @@ defmodule Area51.LLM.Reactors.MysteryGenerationReactor do
 
   # Explicit opt-in to instrumentation middleware
   middlewares do
-    middleware(Reactor.Middleware.OpenTelemetryMiddleware)
-    middleware(Reactor.Middleware.StructuredLoggingMiddleware)
-    middleware(Reactor.Middleware.TelemetryEventsMiddleware)
+    middleware Reactor.Middleware.OpenTelemetryMiddleware
+    middleware Reactor.Middleware.StructuredLoggingMiddleware
+    middleware Reactor.Middleware.TelemetryEventsMiddleware
   end
 
   input(:theme)
