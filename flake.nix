@@ -25,9 +25,7 @@
 
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [
-            unstable-packages
-          ];
+          overlays = [ unstable-packages ];
         };
 
         isDarwin = builtins.match ".*-darwin" pkgs.stdenv.hostPlatform.system != null;
@@ -39,8 +37,8 @@
               unstable.gleam
               unstable.elixir
               unstable.erlang
-              unstable.lexical
-              # unstable.elixir-ls
+              # unstable.lexical
+              unstable.elixir-ls
               # unstable.next-ls
               rebar3
               nodejs_22
@@ -71,21 +69,23 @@
             all =
               pkgs.lib.mapCartesianProduct
                 (
-                  {
-                    arch,
-                    service_name,
-                  }:
+                  { arch, service_name }:
                   {
                     "${service_name}" = {
                       "${toString arch}" =
                         let
-                          nix_arch = builtins.replaceStrings [ "arm64" "amd64" ] [ "aarch64" "x86_64" ] arch;
+                          nix_arch =
+                            builtins.replaceStrings
+                              [ "arm64" "amd64" ]
+                              [
+                                "aarch64"
+                                "x86_64"
+                              ]
+                              arch;
 
                           container_pkgs = import nixpkgs {
                             system = "${nix_arch}-${os}";
-                            overlays = [
-                              unstable-packages
-                            ];
+                            overlays = [ unstable-packages ];
                           };
 
                           service = container_pkgs.callPackage ./release {
