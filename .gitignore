@@ -38,3 +38,7 @@ erl_crash.dump
 # Compiled frontend assets (output of esbuild/webpack etc.)
 # Should match the outdir in your assets build configuration (e.g., esbuild in mix.exs)
 /priv/static/assets/
+
+# LSP files
+.elixir_ls/
+.lexical/
