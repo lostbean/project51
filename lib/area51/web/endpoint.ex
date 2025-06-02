@@ -29,6 +29,11 @@ defmodule Area51.Web.Endpoint do
     gzip: false,
     only: Area51.Web.static_paths()
 
+  # Use Tidewave MCP (only loaded in dev)
+  if Code.ensure_loaded?(Tidewave) do
+    plug Tidewave
+  end
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
