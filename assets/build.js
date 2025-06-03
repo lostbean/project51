@@ -56,6 +56,7 @@ if (watch) {
     .context(opts)
     .then((ctx) => {
       ctx.watch();
+      console.log("⚡ Watching for changes...");
     })
     .catch((_error) => {
       process.exit(1);

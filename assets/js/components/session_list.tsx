@@ -18,7 +18,7 @@ import {
   HStack,
   Icon,
 } from "@chakra-ui/react";
-import UserMenu from './user-menu';
+import UserMenu from "./user-menu";
 
 // Import components from their specific packages to avoid import issues
 import { useToast } from "@chakra-ui/react";
@@ -541,4 +541,3 @@ const SessionList = ({ socket, onSessionSelect, recentSessions = [] }) => {
 };
 
 export default SessionList;
-

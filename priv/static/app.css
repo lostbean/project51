@@ -1,0 +1,141 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000a02;
+  font-family: "VT323", "Share Tech Mono", "Courier New", monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* CRT screen effect */
+#root::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 230, 58, 0.1) 50%),
+    linear-gradient(
+      90deg,
+      rgba(255, 0, 0, 0.04),
+      rgba(0, 255, 0, 0.02),
+      rgba(0, 0, 255, 0.04)
+    );
+  background-size:
+    100% 2px,
+    3px 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Scanline effect */
+@keyframes scan {
+  0% {
+    top: -100%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+#root::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 230, 58, 0.1) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  animation: scan 6s linear infinite;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Flicker animation */
+@keyframes flicker {
+  0% {
+    opacity: 0.98;
+  }
+  2% {
+    opacity: 0.93;
+  }
+  5% {
+    opacity: 0.97;
+  }
+  10% {
+    opacity: 0.94;
+  }
+  20% {
+    opacity: 0.98;
+  }
+  70% {
+    opacity: 0.97;
+  }
+  72% {
+    opacity: 0.93;
+  }
+  77% {
+    opacity: 0.98;
+  }
+  100% {
+    opacity: 0.97;
+  }
+}
+
+body {
+  animation: flicker 4s infinite alternate-reverse;
+}
+
+/* Terminal blink effect for cursor */
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Add noise texture effect */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/png;base64,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");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 9997;
+}
+
+/* Custom scrollbar for terminal feel */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #001a05;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00b32e;
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00e63a;
+}

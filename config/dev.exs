@@ -23,6 +23,16 @@ config :area51, Area51.Web.Endpoint,
   secret_key_base: "o68EN09h0FHarQnGTJuczxgN6atK3NSJ6Vb5j3pPY/x8CqvNk+0c8evPzSa7t372",
   watchers: [
     node: ["build.js", "--watch", cd: Path.expand("../assets", __DIR__)]
+  ],
+  live_reload: [
+    patterns: [
+      ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"priv/gettext/.*(po)$",
+      ~r"lib/area51/web/(auth|controllers|channels)/.*(ex|heex)$",
+      ~r"lib/area51/(llm|gleam|data|core)/.*(ex|heex)$",
+      ~r"assets/js/.*(js|ts|tsx)$",
+      ~r"assets/css/.*(css|scss)$"
+    ]
   ]
 
 # ## SSL Support

@@ -17,7 +17,7 @@ defmodule Area51.Web do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt app.css)
 
   def router do
     quote do
@@ -49,12 +49,32 @@ defmodule Area51.Web do
     end
   end
 
+  def html do
+    quote do
+      use Phoenix.Component
+
+      import Phoenix.Controller,
+        only: [get_csrf_token: 0, view_module: 1, view_template: 1]
+
+      unquote(html_helpers())
+    end
+  end
+
   def verified_routes do
     quote do
       use Phoenix.VerifiedRoutes,
         endpoint: Area51.Web.Endpoint,
         router: Area51.Web.Router,
         statics: Area51.Web.static_paths()
+    end
+  end
+
+  defp html_helpers do
+    quote do
+      import Phoenix.HTML
+      import Phoenix.HTML.Form
+      # use Phoenix.Component # Already in html/0
+      unquote(verified_routes())
     end
   end
 
