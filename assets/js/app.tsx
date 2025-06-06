@@ -8,7 +8,6 @@ import { ChakraProvider, extendTheme, Center, Spinner, Box } from "@chakra-ui/re
 import { Auth0Provider51 } from "./auth/auth-provider";
 import { useAuth } from "./auth/use-auth";
 import { ProtectedRoute } from "./auth/protected-route";
-import { useJobQueue } from "./hooks/use-job-queue";
 
 import LiveState from "phx-live-state";
 
@@ -270,19 +269,23 @@ const SessionListContainer = ({
   recentSessions,
 }) => {
   const [liveState, setLiveState] = useState(null);
+  const [jobManagementState, setJobManagementState] = useState(null);
 
   useEffect(() => {
-    async function createChannel() {
-      const channel = await createLiveState("session_list");
-      await setLiveState(channel);
+    async function createChannels() {
+      const sessionChannel = await createLiveState("session_list");
+      const jobChannel = await createLiveState("job_management");
+      await setLiveState(sessionChannel);
+      await setJobManagementState(jobChannel);
     }
-    createChannel();
+    createChannels();
   }, []);
 
-  if (liveState) {
+  if (liveState && jobManagementState) {
     return (
       <SessionList
         socket={liveState}
+        jobManagementSocket={jobManagementState}
         onSessionSelect={onSessionSelect}
         recentSessions={recentSessions}
       />
@@ -315,6 +318,24 @@ const GameContainer = ({ createLiveState, sessionId, onBackToList }) => {
   return <></>;
 };
 
+// Job Management Container that handles LiveState creation
+const JobManagementContainer = ({ createLiveState }) => {
+  const [liveState, setLiveState] = useState(null);
+
+  useEffect(() => {
+    async function createChannel() {
+      const channel = await createLiveState("job_management");
+      await setLiveState(channel);
+    }
+    createChannel();
+  }, []);
+
+  if (liveState) {
+    return <JobQueueSidebar socket={liveState} />;
+  }
+  return <></>;
+};
+
 const App = () => {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [recentSessions, setRecentSessions] = useState<number[]>(() => {
@@ -323,18 +344,16 @@ const App = () => {
     return storedSessions ? JSON.parse(storedSessions) : [];
   });
   const { user, isAuthenticated, getToken } = useAuth();
+  const [token, setToken] = useState<string>('');
   
-  // Job queue management
-  const {
-    jobs,
-    isConnected: jobQueueConnected,
-    cancelJob,
-    refreshJobs,
-    error: jobQueueError
-  } = useJobQueue({ 
-    userId: user?.sub || '', 
-    socketUrl: "ws://localhost:4000/socket" 
-  });
+  // Get token when user changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      getToken().then(setToken);
+    } else {
+      setToken('');
+    }
+  }, [isAuthenticated, user, getToken]);
 
   // Function to create a LiveState connection with user data
   const createLiveState = async (topic: string) => {
@@ -407,12 +426,7 @@ const App = () => {
       
       {/* Job Queue Sidebar */}
       {isAuthenticated && user && (
-        <JobQueueSidebar
-          jobs={jobs}
-          onJobCancel={cancelJob}
-          onJobRefresh={refreshJobs}
-          isConnected={jobQueueConnected}
-        />
+        <JobManagementContainer createLiveState={createLiveState} />
       )}
     </Box>
   );

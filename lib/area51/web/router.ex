@@ -31,14 +31,6 @@ defmodule Area51.Web.Router do
       # Token verification endpoint
       post "/verify", AuthController, :verify
     end
-
-    # Mystery generation endpoints
-    scope "/mysteries" do
-      post "/generate-async", MysteryController, :generate_async
-      get "/job/:job_id", MysteryController, :job_status
-      get "/jobs", MysteryController, :list_jobs
-      delete "/job/:job_id", MysteryController, :cancel_job
-    end
   end
 
   # Protected API endpoints

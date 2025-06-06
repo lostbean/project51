@@ -111,9 +111,30 @@ defmodule Area51.Jobs do
 
     attrs = Map.put(attrs, :status, status)
 
-    job
-    |> MysteryGenerationJob.status_changeset(attrs)
-    |> Repo.update()
+    case job
+         |> MysteryGenerationJob.status_changeset(attrs)
+         |> Repo.update() do
+      {:ok, updated_job} ->
+        # Broadcast job status update
+        Phoenix.PubSub.broadcast(
+          Area51.Data.PubSub,
+          "job_updates:#{updated_job.user_id}",
+          {:job_status_update,
+           %{
+             job_id: updated_job.id,
+             status: updated_job.status,
+             progress: updated_job.progress,
+             error_message: updated_job.error_message,
+             result: updated_job.result,
+             updated_at: updated_job.updated_at
+           }}
+        )
+
+        {:ok, updated_job}
+
+      error ->
+        error
+    end
   end
 
   @doc """

@@ -20,10 +20,11 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { FiPlay, FiZap } from 'react-icons/fi';
+import { useJobManagement } from '../hooks/use-job-management';
 
 interface MysteryGenerationButtonProps {
   onMysteryGenerated?: (jobId: number) => void;
-  userId: string;
+  socket: any;
   variant?: 'solid' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   isDisabled?: boolean;
@@ -31,7 +32,7 @@ interface MysteryGenerationButtonProps {
 
 const MysteryGenerationButton: React.FC<MysteryGenerationButtonProps> = ({
   onMysteryGenerated,
-  userId,
+  socket,
   variant = 'solid',
   size = 'md',
   isDisabled = false,
@@ -41,6 +42,8 @@ const MysteryGenerationButton: React.FC<MysteryGenerationButtonProps> = ({
   const [theme, setTheme] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
   const toast = useToast();
+  
+  const { actions } = useJobManagement(socket);
 
   const predefinedThemes = [
     'alien technology discovery',
@@ -58,10 +61,10 @@ const MysteryGenerationButton: React.FC<MysteryGenerationButtonProps> = ({
   ];
 
   const handleGenerate = async () => {
-    if (!userId) {
+    if (!socket) {
       toast({
-        title: 'Authentication Required',
-        description: 'Please log in to generate mysteries',
+        title: 'Connection Required',
+        description: 'Please wait for connection to be established',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -72,47 +75,34 @@ const MysteryGenerationButton: React.FC<MysteryGenerationButtonProps> = ({
     setIsLoading(true);
 
     try {
-      // Call the backend API to create an async mystery generation job
-      const response = await fetch('/api/mysteries/generate-async', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          theme: theme.trim() || undefined, // Use undefined for random theme
-          difficulty,
-          user_id: userId,
-        }),
+      const result = await actions.generateMystery({
+        theme: theme.trim() || undefined, // Use undefined for random theme
+        difficulty,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (result.success) {
+        // Success!
+        const themeDisplay = theme.trim() || 'random';
+        toast({
+          title: 'Mystery Generation Started',
+          description: `Your ${difficulty} mystery with ${themeDisplay} theme is being generated in the background.`,
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+
+        // Call the callback if provided (job updates will come via state)
+        if (onMysteryGenerated) {
+          onMysteryGenerated(0); // No immediate job ID available
+        }
+
+        // Reset form and close modal
+        setTheme('');
+        setDifficulty('medium');
+        onClose();
+      } else {
+        throw new Error(result.error || 'Unknown error occurred');
       }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Success!
-      toast({
-        title: 'Mystery Generation Started',
-        description: `Your ${difficulty} mystery about "${data.job.theme}" is being generated in the background.`,
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-
-      // Call the callback if provided
-      if (onMysteryGenerated) {
-        onMysteryGenerated(data.job.id);
-      }
-
-      // Reset form and close modal
-      setTheme('');
-      setDifficulty('medium');
-      onClose();
 
     } catch (error) {
       console.error('Failed to start mystery generation:', error);
@@ -129,10 +119,10 @@ const MysteryGenerationButton: React.FC<MysteryGenerationButtonProps> = ({
   };
 
   const handleQuickGenerate = async () => {
-    if (!userId) {
+    if (!socket) {
       toast({
-        title: 'Authentication Required',
-        description: 'Please log in to generate mysteries',
+        title: 'Connection Required',
+        description: 'Please wait for connection to be established',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -143,37 +133,24 @@ const MysteryGenerationButton: React.FC<MysteryGenerationButtonProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/mysteries/generate-async', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          difficulty: 'medium',
-          user_id: userId,
-        }),
+      const result = await actions.generateMystery({
+        difficulty: 'medium',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (result.success) {
+        toast({
+          title: 'Mystery Generation Started',
+          description: `A random mystery is being generated in the background.`,
+          status: 'success',
+          duration: 4000,
+          isClosable: true,
+        });
 
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      toast({
-        title: 'Mystery Generation Started',
-        description: `A random mystery is being generated in the background.`,
-        status: 'success',
-        duration: 4000,
-        isClosable: true,
-      });
-
-      if (onMysteryGenerated) {
-        onMysteryGenerated(data.job.id);
+        if (onMysteryGenerated) {
+          onMysteryGenerated(0); // No immediate job ID available
+        }
+      } else {
+        throw new Error(result.error || 'Unknown error occurred');
       }
 
     } catch (error) {

@@ -119,16 +119,23 @@ config :opentelemetry_ecto, tracer_id: :area51_tracer
 config :area51, Oban,
   engine: Oban.Engines.Basic,
   repo: Area51.Data.Repo,
-  notifier: Oban.Notifiers.PG, # Use PG notifier
-  peer: false, # Disable peer system for SQLite3 compatibility
-  prefix: false, # Disable table prefixes for SQLite3 compatibility
+  # Use PG notifier
+  notifier: Oban.Notifiers.PG,
+  # Disable peer system for SQLite3 compatibility
+  peer: false,
+  # Disable table prefixes for SQLite3 compatibility
+  prefix: false,
   plugins: [
-    {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7}, # Keep jobs for 7 days
-    {Oban.Plugins.Cron, crontab: []}, # Enable cron scheduling if needed
-    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)} # Rescue orphaned jobs
+    # Keep jobs for 7 days
+    {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
+    # Enable cron scheduling if needed
+    {Oban.Plugins.Cron, crontab: []},
+    # Rescue orphaned jobs
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)}
   ],
   queues: [
-    mystery_generation: 2, # Allow 2 concurrent mystery generation jobs
+    # Allow 2 concurrent mystery generation jobs
+    mystery_generation: 2,
     default: 5
   ],
   dispatch_cooldown: 5

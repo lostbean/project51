@@ -31,17 +31,15 @@ import {
   FiChevronUp,
   FiRefreshCw,
 } from "react-icons/fi";
-import { MysteryGenerationJob, JobUpdate, JobQueueData } from "../types/job";
+import { Job } from "../types/job";
+import { useJobManagement } from "../hooks/use-job-management";
 
 interface JobQueueSidebarProps {
-  jobs: JobQueueData;
-  onJobCancel: (jobId: number) => void;
-  onJobRefresh: () => void;
-  isConnected: boolean;
+  socket: any;
 }
 
 const JobItem: React.FC<{
-  job: MysteryGenerationJob;
+  job: Job;
   onCancel: (jobId: number) => void;
 }> = ({ job, onCancel }) => {
   const { isOpen, onToggle } = useDisclosure();
@@ -197,16 +195,44 @@ const JobItem: React.FC<{
   );
 };
 
-const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({
-  jobs,
-  onJobCancel,
-  onJobRefresh,
-  isConnected,
-}) => {
+const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({ socket }) => {
   const { isOpen: showCompleted, onToggle: toggleCompleted } = useDisclosure({ defaultIsOpen: false });
+  
+  const { state, actions } = useJobManagement(socket);
+  
+  if (!state) {
+    return (
+      <Box
+        w="350px"
+        h="100vh"
+        bg="area51.800"
+        borderLeft="1px solid"
+        borderColor="terminal.700"
+        position="fixed"
+        right={0}
+        top={0}
+        zIndex={1000}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <VStack spacing={2}>
+          <Spinner size="lg" color="terminal.400" />
+          <Text color="gray.400">Connecting...</Text>
+        </VStack>
+      </Box>
+    );
+  }
 
-  const runningCount = jobs.running.length;
-  const completedCount = jobs.completed.length;
+  const runningCount = state.running_jobs.length;
+  const completedCount = state.completed_jobs.length;
+  
+  const handleJobCancel = async (jobId: number) => {
+    const result = await actions.cancelJob(jobId);
+    if (!result.success) {
+      console.error('Failed to cancel job:', result.error);
+    }
+  };
 
   return (
     <Box
@@ -229,8 +255,8 @@ const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({
               Job Queue
             </Text>
             <HStack spacing={2}>
-              <Badge colorScheme={isConnected ? "green" : "red"} size="sm">
-                {isConnected ? "Connected" : "Disconnected"}
+              <Badge colorScheme="green" size="sm">
+                Connected
               </Badge>
               {runningCount > 0 && (
                 <Badge colorScheme="blue" size="sm">
@@ -244,7 +270,7 @@ const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({
             <IconButton
               size="sm"
               icon={<FiRefreshCw />}
-              onClick={onJobRefresh}
+              onClick={actions.refreshJobs}
               aria-label="Refresh jobs"
               variant="ghost"
             />
@@ -273,8 +299,8 @@ const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({
             </Card>
           ) : (
             <VStack spacing={2} align="stretch">
-              {jobs.running.map((job) => (
-                <JobItem key={job.id} job={job} onCancel={onJobCancel} />
+              {state.running_jobs.map((job) => (
+                <JobItem key={job.id} job={job} onCancel={handleJobCancel} />
               ))}
             </VStack>
           )}
@@ -309,8 +335,8 @@ const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({
               </Card>
             ) : (
               <VStack spacing={2} align="stretch" maxH="300px" overflowY="auto">
-                {jobs.completed.map((job) => (
-                  <JobItem key={job.id} job={job} onCancel={onJobCancel} />
+                {state.completed_jobs.map((job) => (
+                  <JobItem key={job.id} job={job} onCancel={handleJobCancel} />
                 ))}
               </VStack>
             )}

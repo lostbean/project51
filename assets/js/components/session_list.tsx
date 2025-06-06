@@ -34,7 +34,7 @@ import {
   FiInfo,
 } from "react-icons/fi";
 
-const SessionList = ({ socket, onSessionSelect, recentSessions = [] }) => {
+const SessionList = ({ socket, onSessionSelect, recentSessions = [], jobManagementSocket }) => {
   const [topic, setTopic] = useState("");
   const [state, pushEvent] = useLiveState(socket, { sessions: [] });
   const toast = useToast();
@@ -316,9 +316,9 @@ const SessionList = ({ socket, onSessionSelect, recentSessions = [] }) => {
                 Let the AI create a mystery investigation for you
               </Text>
             </VStack>
-            {user && (
+            {user && jobManagementSocket && (
               <MysteryGenerationButton
-                userId={user.sub}
+                socket={jobManagementSocket}
                 onMysteryGenerated={(jobId) => {
                   toast({
                     title: "Mystery Generation Started",
