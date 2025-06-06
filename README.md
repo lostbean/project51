@@ -21,11 +21,19 @@ In **Area 51: Unveiling the Unknown**, you and your team of investigators are ta
 -   **Phoenix Channels:** Real-time communication via WebSockets. 📡
 -   **LiveState:** Efficient state synchronization between the backend and frontend. 🔄
 -   **Ecto & SQLite:** Data persistence for game sessions, clues, and logs. 💾
--   **Magus Library:** Seamless integration with Large Language Models. 🧠
+-   **Reactor Workflows:** Composable, type-safe workflow orchestration for AI and conventional processes. 🔄
+-   **Oban Job Management:** Reliable background job processing with telemetry and monitoring. ⚙️
 -   **Gleam:** Type-safe functional programming for state modeling. 🌟
 
 ## 🧮 Architecture & Design
-See the [deep search analysis](./Architecture_Deep_Search.md) a for detailed exploration.
+See the [deep search analysis](./Architecture_Deep_Search.md) for detailed exploration.
+
+### Key Architectural Changes
+
+-   **From Magus to Reactor:** All workflows now use [Reactor](https://hexdocs.pm/reactor/) for composable, type-safe process orchestration
+-   **Oban Integration:** Background job processing with comprehensive telemetry and real-time status updates
+-   **Reactor Observability:** Custom middleware providing OpenTelemetry tracing, structured logging, and telemetry events
+-   **PubSub-Driven UI:** Real-time updates flow from backend processes through PubSub to LiveState channels
 
 ## System Architecture Overview
 
@@ -56,10 +64,18 @@ graph TB
         end
 
         subgraph "area51_llm"
-            agent[Agent]--uses-->investigation_agent[Investigation Agent]
-            agent--uses-->mystery_agent[Mystery Agent]
-            investigation_agent--generates-->narrative[Narrative]
-            investigation_agent--extracts-->new_clues[Clues]
+            reactors[Reactor Workflows]--orchestrates-->investigation_reactor[Investigation Reactor]
+            reactors--orchestrates-->mystery_reactor[Mystery Generation Reactor]
+            investigation_reactor--generates-->narrative[Narrative]
+            investigation_reactor--extracts-->new_clues[Clues]
+            mystery_reactor--creates-->mystery_jobs[Mystery Jobs]
+        end
+
+        subgraph "area51_jobs"
+            oban[Oban Job Processing]--executes-->mystery_worker[Mystery Generation Worker]
+            oban--broadcasts-->pubsub[PubSub Events]
+            mystery_worker--uses-->mystery_reactor
+            pubsub--updates-->live_state
         end
 
         subgraph "area51_gleam"
@@ -76,29 +92,37 @@ graph TB
     area51_core--accessed by-->area51_data
     area51_core--used by-->area51_web
     area51_web--uses-->area51_llm
+    area51_jobs--processes-->background_tasks[Background Tasks]
+    area51_jobs--publishes to-->pubsub
     live_state--synchronizes-->assets
+    live_state--subscribes to-->pubsub
     live_state--uses-->domain
+    reactors--integrates with-->oban
 ```
 
 ### Modularity and Separation of Concerns
 
 The Area 51 project is structured as a single Elixir application, promoting clear separation of concerns through its modular design using namespaces under the main `Area51` module:
 
--   **Area51.Core:** Contains the domain models and core game logic (formerly the `area51_core` app).
--   **Area51.Data:** Handles data persistence using Ecto (formerly the `area51_data` app).
--   **Area51.Llm:** Encapsulates LLM integration logic (formerly the `area51_llm` app).
--   **Area51.Web:** Manages HTTP and WebSocket interfaces (formerly the `area51_web` app).
--   **Area51.Gleam:** Leverages Gleam for type-safe state modeling (formerly the `area51_gleam` app).
+-   **Area51.Core:** Contains the domain models and core game logic.
+-   **Area51.Data:** Handles data persistence using Ecto with job-specific schemas.
+-   **Area51.Jobs:** Manages background job processing with Oban, including job-specific contexts and telemetry.
+-   **Area51.Llm:** Encapsulates LLM integration using Reactor workflows for composable AI processes.
+-   **Area51.Web:** Manages HTTP and WebSocket interfaces with real-time PubSub integration.
+-   **Area51.Gleam:** Leverages Gleam for type-safe state modeling.
+-   **Reactor.Middleware:** Provides observability middleware for workflow tracing and monitoring.
 
 This modular approach using namespaces within a single application facilitates testing, allows components to evolve with clarity, and supports system scalability.
 
-### State Management
+### State Management & Real-time Updates
 
-The application implements a sophisticated state management strategy:
+The application implements a sophisticated state management strategy with comprehensive real-time capabilities:
 
 -   **Backend State:** Game state is maintained in the Elixir backend, using Phoenix PubSub for real-time updates
 -   **Frontend Synchronization:** LiveState library efficiently syncs backend state to the React frontend
--   **Event-Based Architecture:** State changes are driven by events, with the system responding to player actions and LLM outputs
+-   **Event-Based Architecture:** State changes are driven by events, with the system responding to player actions and job completions
+-   **Job-Driven Workflows:** Background jobs use Reactor workflows to orchestrate complex processes
+-   **PubSub Integration:** Job status changes and completions automatically broadcast to LiveState channels
 -   **Type-Safe State Modeling:** Gleam provides compile-time type safety for state definitions
 
 State flows from the backend to the frontend through Phoenix Channels and LiveState, creating a consistent, real-time experience for all players in an investigation.
@@ -114,17 +138,19 @@ Authentication and authorization are implemented using industry-standard pattern
 
 The system validates JWTs using cached JWKS (JSON Web Key Sets), providing robust security with minimal performance overhead.
 
-### Observability
+### Observability & Monitoring
 
-Comprehensive observability is achieved through multi-layered instrumentation:
+Comprehensive observability is achieved through multi-layered instrumentation with specialized workflow monitoring:
 
 -   **Telemetry:** Erlang/Elixir's telemetry library provides structured event emission
--   **OpenTelemetry:** Standardized tracing across service boundaries
--   **Structured Logging:** Consistent log formatting with contextual metadata
+-   **OpenTelemetry:** Standardized tracing across service boundaries and Reactor workflows
+-   **Reactor Middleware:** Custom observability middleware for workflow tracing, structured logging, and telemetry events
+-   **Job Telemetry:** Oban job lifecycle events with job-specific telemetry handlers
+-   **Structured Logging:** Consistent log formatting with contextual metadata and trace correlation
 -   **Metrics Collection:** PromEx integration for Prometheus-compatible metrics
--   **Grafana Dashboards:** Pre-configured visualization for system performance
+-   **Grafana Dashboards:** Pre-configured visualization for system performance and job monitoring
 
-Traces follow requests through the system, from HTTP requests through channel operations to LLM interactions, providing end-to-end visibility into system behavior.
+Traces follow requests through the system, from HTTP requests through channel operations, Reactor workflows, to job processing and LLM interactions, providing end-to-end visibility into system behavior.
 
 ### Language Interoperability
 
@@ -202,15 +228,21 @@ area51_investigation/
 
 **Note:** The Mermaid diagram above reflects the old umbrella structure and needs to be manually updated to represent the current single-application architecture with namespaced modules.
 
-## 🧠 LLM Integration
+## 🧠 LLM Integration & Workflow Orchestration
 
-The `Area51.Llm` module handles the integration with the Large Language Model using the Magus library. 🚀
+The `Area51.Llm` module handles LLM integration using Reactor workflows for composable, type-safe AI processes. 🚀
 
--   **Prompt Engineering:** Carefully crafted prompts guide the LLM to generate narrative elements, clues, and responses that fit the Area 51 theme. 📝
--   **Structured Output:** The LLM's responses are formatted into structured JSON to facilitate seamless integration with the backend. 📦
--   **Asynchronous Processing:** LLM interactions are handled asynchronously to maintain application responsiveness. ⏳
+-   **Reactor Workflows:** Composable workflow orchestration using [Reactor](https://hexdocs.pm/reactor/) for complex AI processes
+-   **Instructor Integration:** Structured LLM outputs using [Instructor](https://hexdocs.pm/instructor/) with Ecto schemas
+-   **Asynchronous Processing:** Background job processing with Oban for long-running AI operations
+-   **Observability:** Full tracing and monitoring of AI workflows through custom Reactor middleware
+-   **Job Management:** Mystery generation and other AI processes handled as background jobs with real-time status updates
 
-**Note:** You'll need to replace the placeholder in `lib/area51/llm/agent.ex` with your actual Magus library code and LLM provider credentials. 🔑
+### Key Components
+
+-   **Investigation Reactor:** Orchestrates narrative generation and clue extraction workflows
+-   **Mystery Generation Reactor:** Handles complex mystery creation processes as background jobs
+-   **Reactor Middleware:** Provides OpenTelemetry tracing, structured logging, and telemetry events for all workflows
 
 ## Deployment
 

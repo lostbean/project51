@@ -38,11 +38,11 @@ The technology stack forms the bedrock of any software application, dictating it
 * **Relevance:** Ecto offers a robust and explicit approach to data persistence and validation. Its schema definitions map database tables to Elixir structs, while changesets provide a powerful mechanism for data casting, validation, and tracking changes before they are persisted.22 Ecto's composable queries allow for building complex database requests in a clean, functional style.27 SQLite provides simplicity in deployment (zero configuration, file-based) and can offer good performance for applications with low-to-moderate traffic, particularly those that are read-heavy.25 It might be suitable for initial development or scenarios where concurrent write operations are infrequent.
 * **Trade-offs:** The most significant trade-off is SQLite's limitation regarding concurrent write operations. Even when configured to use Write-Ahead Logging (WAL) mode, SQLite fundamentally serializes writes, allowing only one process to write to the database at any given moment.25 In a real-time, multi-user application like Area 51, where player actions, game logic updates, and LLM interactions might trigger frequent database writes from concurrent sessions, this single-writer limitation presents a substantial scalability risk. High write contention can lead to significant performance degradation and frequent "database is locked" errors, potentially rendering the application unusable under load.28 While configurations like enabling WAL mode, increasing busy\_timeout, and setting synchronous=NORMAL can mitigate the issue to some extent 28, they do not eliminate the underlying architectural constraint. SQLite is generally not recommended for applications requiring high write concurrency or planning to scale across multiple server instances.25 This choice appears potentially misaligned with the project's goal of being "robust and scalable" if significant concurrent write activity is anticipated. Ecto itself, while powerful, also has a learning curve associated with its concepts and explicitness.22
 
-### **F. Magus Library**
+### **F. Reactor Workflows & Instructor**
 
-* **Role:** The Magus library is specified for seamless integration with Large Language Models (LLMs) \[Architecture Description\]. Based on available information, it appears to be a relatively new library focused on implementing graph-based LLM agents in Elixir.32
-* **Relevance:** Integrating LLMs often involves complex prompt engineering, managing conversational context, parsing responses, and potentially orchestrating sequences of LLM calls or interactions with other tools (agentic behavior). A dedicated library like Magus aims to provide abstractions to simplify these tasks.33
-* **Trade-offs:** The primary concern with Magus is its apparent immaturity. Version 0.2.0 (as of March 2025\) suggests it is still in early development.32 Relying on such a nascent library for a critical function like LLM integration introduces significant risks related to bugs, breaking changes, limited features, sparse documentation, lack of community support, and uncertain long-term maintenance. Abstractions provided by the library might also impose constraints or hide necessary LLM API details, potentially limiting flexibility.34 An alternative like LangChain.Elixir 34, while also evolving, represents a potentially more established option within the Elixir ecosystem for LLM orchestration. The decision to use Magus over more established alternatives warrants careful justification, as it introduces a notable risk factor into the project.
+* **Role:** [Reactor](https://hexdocs.pm/reactor/) provides composable, type-safe workflow orchestration for both AI and conventional processes. [Instructor](https://hexdocs.pm/instructor/) handles structured LLM outputs using Ecto schemas for robust data validation.
+* **Relevance:** Reactor's DSL-based approach allows building complex workflows as directed acyclic graphs (DAGs) with clear input/output dependencies. This is particularly valuable for AI processes that require multiple steps, error handling, and observability. Instructor ensures LLM responses are properly validated and typed, reducing runtime errors from malformed AI outputs.
+* **Trade-offs:** While Reactor is well-established in the Elixir ecosystem with strong documentation and community support, it adds architectural complexity through its step-based workflow paradigm. Teams need to understand the Reactor DSL and step composition patterns. However, this complexity is justified by the reliability, observability, and composability benefits for complex AI workflows.
 
 ### **G. Gleam**
 
@@ -59,43 +59,47 @@ The technology stack forms the bedrock of any software application, dictating it
 | **Phoenix Channels** | Real-time communication layer (WebSocket abstraction) | Bidirectional communication, Scalability, Resilience features (heartbeat, reconnect) 5 | Requires specific client library 15, Cluster PubSub considerations 14 |
 | **LiveState** | Backend-to-frontend state synchronization library | Centralized server state (single source of truth) 19, Reduced client state logic complexity 20 | Lower maturity/adoption vs. LiveView 19, Requires client-side rendering 19, Adds dependency/abstraction complexity 19 |
 | **Ecto/SQLite** | Database wrapper (Ecto) & Relational database engine (SQLite) | Ecto: Explicit queries, Changesets for validation 23; SQLite: Simplicity, Zero-config 25 | SQLite: Poor write concurrency, Scalability limits 25; Ecto: Learning curve 22 |
-| **Magus Library** | LLM integration/agent library | Abstraction for LLM interaction 33 | Apparent immaturity/risk 32, Potential abstraction limitations, Alternative (LangChain) exists 34 |
+| **Reactor/Instructor** | Workflow orchestration & structured LLM outputs | Type-safe workflows, Composable AI processes, Structured validation | Learning curve for workflow paradigm, Additional architectural complexity |
 | **Gleam** | Type-safe state modeling language (interops with Elixir) | Compile-time type safety 35, Potential for fewer runtime errors 36 | Adds language complexity (build, skills) 37, Interop friction 35, Smaller ecosystem/maturity 35 |
 
-## **II. Architectural Modularity Assessment (Elixir Umbrella Application)**
+## **II. Architectural Modularity Assessment (Single Application with Modular Design)**
 
-Modularity is a cornerstone of maintainable and scalable software design. The Area 51 project adopts Elixir's Umbrella application structure to achieve this. An Umbrella project allows developers to manage multiple distinct Elixir applications within a single repository, facilitating code organization and separation of concerns while allowing these applications to share dependencies and potentially be deployed together or separately.39 This approach sits between a traditional monolith and a fully distributed microservices architecture.39
+Modularity is a cornerstone of maintainable and scalable software design. The Area 51 project has evolved from an Umbrella application structure to a single Elixir application with well-organized, modular namespaces. This approach provides clear separation of concerns while maintaining simplicity in build processes, testing, and deployment.
 
 ### **Area 51 Structure and Purpose**
 
-The project is divided into five distinct applications under the umbrella:
+The project is organized into distinct namespaces within a single application:
 
-* **area51\_core:** Houses the fundamental domain models and core game logic, explicitly designed to be independent of how data is persisted or delivered (e.g., web interfaces) \[Architecture Description\]. This aligns with domain-driven design principles.
-* **area51\_data:** Encapsulates all data persistence logic using Ecto. It defines database schemas and functions for creating, reading, updating, and deleting data \[Architecture Description\].
-* **area51\_llm:** Isolates all interactions with Large Language Models, including prompt construction, API calls via the Magus library, and response processing \[Architecture Description\].
-* **area51\_web:** Manages all external interfaces, specifically HTTP requests and WebSocket connections (via Phoenix Channels). It handles incoming requests/messages and interacts with other applications (like area51\_core) to fulfill them \[Architecture Description\].
-* **area51\_gleam:** Contains the Gleam code dedicated to providing type-safe definitions for application state models \[Architecture Description\].
+* **Area51.Core:** Houses the fundamental domain models and core game logic, explicitly designed to be independent of how data is persisted or delivered. This aligns with domain-driven design principles.
+* **Area51.Data:** Encapsulates all data persistence logic using Ecto, with job-specific schemas and embedded data access functions.
+* **Area51.Jobs:** Manages background job processing with Oban, including job-specific contexts, telemetry handlers, and scalable job organization patterns.
+* **Area51.Llm:** Orchestrates LLM interactions using Reactor workflows, with steps for narrative generation, clue extraction, and mystery creation.
+* **Area51.Web:** Manages all external interfaces, specifically HTTP requests and WebSocket connections (via Phoenix Channels), with real-time PubSub integration.
+* **Area51.Gleam:** Contains Gleam code for type-safe state modeling.
+* **Reactor.Middleware:** Provides observability middleware for workflow tracing, structured logging, and telemetry events.
 
 ### **Evaluation of Benefits**
 
-This modular structure offers several potential advantages:
+This modular structure offers several advantages:
 
-* **Clear Separation of Concerns:** The division enforces boundaries between distinct functional areas – domain logic, data access, external communication, LLM interaction, and state definition.39 This can improve code organization and make the system easier to understand.40
-* **Enhanced Testability:** Each sub-application can potentially be tested in greater isolation, focusing tests on specific functionalities (e.g., testing core game logic without needing a running web server or database).40
-* **Independent Evolution:** Theoretically, changes within one application (e.g., refactoring database queries in area51\_data) should have minimal impact on others, provided interfaces are stable. This can aid parallel development and long-term maintenance.40
-* **Deployment Flexibility:** Although often deployed as a single unit 43, the umbrella structure is explicitly designed to support the creation of different release artifacts containing subsets of the applications.40 This offers potential flexibility for scaling or deploying specific parts independently if required later.
+* **Clear Separation of Concerns:** The division enforces boundaries between distinct functional areas – domain logic, data access, job processing, LLM interaction, external communication, and state definition.
+* **Enhanced Testability:** Each namespace can be tested in greater isolation, with clear interfaces and dependencies.
+* **Independent Evolution:** Changes within one namespace should have minimal impact on others, provided interfaces are stable.
+* **Job-Specific Organization:** The scalable job architecture pattern allows adding new job types with minimal modification to existing code.
+* **Simplified Deployment:** Single application deployment while maintaining logical separation.
 
-### **Drawbacks and Trade-offs**
+### **Current Approach Benefits**
 
-Despite the benefits, the umbrella approach introduces its own set of challenges:
+The single application with modular namespaces approach provides:
 
-* **Increased Complexity:** Compared to a single, well-structured Elixir application, the umbrella adds overhead. Managing dependencies between the internal applications can become intricate, especially if circular dependencies are inadvertently created.39 Developers need to understand the umbrella project structure, configuration nuances, and tooling.40
-* **Build and Test Overhead:** Compiling and running tests across multiple applications within the umbrella can be more complex and potentially slower than in a single application.40 Continuous Integration (CI) setup often requires more sophisticated configuration.44
-* **Shared Environment:** Umbrella applications typically share a single top-level configuration and common dependencies declared at the root.39 This limits true decoupling, as changes to shared dependencies affect all applications, and dependency conflicts can arise.39
-* **Potential for Misapplication:** Umbrella projects are sometimes used purely for logical code organization within a team, a goal that can often be achieved more simply using "contexts" (well-defined modules/directories) within a standard single Elixir application.43 If the primary driver isn't the need for potentially separate deployments, the umbrella structure might constitute over-engineering.43 The description emphasizes "clear separation of concerns", but without a clear need for independent deployment, this justification alone might be weak compared to simpler alternatives like contexts. The inclusion of area51\_gleam as a separate app, rather than just a directory within area51\_core or its own library, further underscores the potential for added structural complexity.
-* **Risk of Coupling:** While the structure encourages separation, Elixir's module system allows public functions in one application to be called directly from another if they are compiled and loaded together (which is typical for umbrella apps deployed as a unit).42 Without strict discipline and the enforcement of well-defined interface modules for cross-application communication 42, tight coupling can easily re-emerge, undermining the intended modularity benefits over time.
+* **Simplified Build Process:** Single application compilation and testing without umbrella complexity.
+* **Unified Configuration:** Shared configuration management without cross-application coordination issues.
+* **Easier Dependency Management:** Single dependency tree with consistent versions.
+* **Maintained Modularity:** Clear namespace boundaries enforce separation of concerns.
+* **Job Architecture Pattern:** Scalable job organization using job-specific contexts and telemetry handlers.
+* **Reactor Integration:** Workflow orchestration with observability middleware providing comprehensive tracing.
 
-In summary, the umbrella structure provides a formal mechanism for modularity, but its benefits must be weighed against the introduced complexity. Its effectiveness hinges on disciplined development practices to maintain clear boundaries and leveraging its primary strength (deployment flexibility) where genuinely needed.
+In summary, the current single application structure with modular namespaces achieves separation of concerns without umbrella complexity, while the job architecture pattern and Reactor workflows provide composable, scalable foundations for complex processes.
 
 ## **III. State Management Strategy Evaluation**
 
@@ -282,11 +286,11 @@ Based on the identified weaknesses and risks, several alternative technologies a
 * **Rationale:** Structure the application using the standard mix new my\_app template. Organize code into distinct domain contexts (modules grouped in directories like lib/my\_app/accounts/, lib/my\_app/game\_logic/, etc.), following Phoenix conventions.43 This provides strong logical separation and clear boundaries without the added structural and tooling complexity of an umbrella project. Build, testing, and dependency management are simpler.
 * **Trade-offs:** Loses the built-in mechanism for easily creating separate deployment artifacts for different parts of the application, although this may not be a necessary requirement. Requires team discipline to maintain context boundaries and avoid creating tight coupling between contexts.
 
-### **D. LLM Integration (Addressing Magus Maturity Risk)**
+### **D. LLM Integration (Current Reactor/Instructor Approach)**
 
-* **Alternative:** **LangChain.Elixir**.34
-* **Rationale:** LangChain.Elixir is a more established (though still evolving) library within the Elixir ecosystem specifically designed for orchestrating interactions with LLMs.34 It likely offers a broader set of features, more integrations, better documentation, and stronger community support compared to the apparently nascent Magus library 33, thus reducing technical risk.
-* **Trade-offs:** LangChain itself introduces its own set of abstractions and concepts that need to be learned.
+* **Current Solution:** **Reactor + Instructor**
+* **Rationale:** Reactor provides mature, well-documented workflow orchestration with strong community support. Instructor offers robust structured output handling with Ecto schema validation. This combination provides better reliability and observability than earlier library approaches.
+* **Benefits:** Type-safe workflows, composable AI processes, comprehensive observability, and structured validation of LLM outputs.
 
 ### **E. Type-Safe State Modeling (Addressing Gleam Complexity)**
 
@@ -301,7 +305,7 @@ Based on the identified weaknesses and risks, several alternative technologies a
 | **Database** | SQLite's poor write concurrency and scalability limits 25 | PostgreSQL or MySQL 25 | Mature RDBMS designed for high concurrency and scalability, well-supported by Ecto.24 |
 | **State Sync** | LiveState complexity, maturity risk, client-rendering requirement 19 | 1\. Phoenix LiveView 19 \<br\> 2\. Channels \+ Frontend State 13 | 1\. Mature, integrated Elixir solution, server-rendering. \<br\> 2\. Avoids LiveState abstraction, uses std. libraries. |
 | **Modularity** | Umbrella complexity potentially unnecessary if no separate deployment 43 | Single Elixir App with Contexts 43 | Simpler structure, build, test, and dependency management; achieves logical separation. |
-| **LLM Library** | Magus library maturity risk 32 | LangChain.Elixir 34 | More established Elixir library for LLM orchestration, likely lower risk. |
+| **LLM Integration** | Need for robust AI workflow orchestration | Reactor + Instructor | Mature workflow orchestration with type-safe structured outputs and observability. |
 | **Type-Safe State** | Gleam adds significant polyglot complexity 37 | Elixir Structs, Pattern Matching, Gradual Typing (Dialyzer) 38 | Avoids adding another language; leverages Elixir's features for sufficient validation with less complexity. |
 
 #### **Works cited**

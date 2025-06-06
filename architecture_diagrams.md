@@ -1,6 +1,8 @@
 # Area 51 Architecture Diagrams
 
-## State Management Flow
+This document provides visual representations of the current Area 51 architecture, focusing on the updated job management system, Reactor workflows, and real-time PubSub integration.
+
+## State Management & Job Processing Flow
 
 ```mermaid
 sequenceDiagram
@@ -9,7 +11,9 @@ sequenceDiagram
     participant PhoenixChannels as Phoenix Channels
     participant LiveState
     participant GameState as Game State
-    participant LLMAgent as LLM Agent
+    participant ReactorWorkflow as Reactor Workflow
+    participant ObanJob as Oban Job
+    participant PubSub as Phoenix PubSub
     participant LLMProvider as LLM Provider
     participant EctoRepo as Ecto Repo
 
@@ -17,15 +21,28 @@ sequenceDiagram
     ReactFrontend->>PhoenixChannels: Send event ("new_input")
     PhoenixChannels->>LiveState: Process event
     LiveState->>GameState: Update state
-    LiveState->>LLMAgent: Request narrative update
-    LLMAgent->>LLMProvider: Send prompt with context
-    LLMProvider->>LLMAgent: Return generated content
-    LLMAgent->>LiveState: Provide narrative & clues
-    LiveState->>GameState: Update with LLM response
+    LiveState->>ReactorWorkflow: Execute investigation workflow
+    ReactorWorkflow->>LLMProvider: Send structured prompts
+    LLMProvider->>ReactorWorkflow: Return validated responses
+    ReactorWorkflow->>LiveState: Provide narrative & clues
+    LiveState->>GameState: Update with workflow results
     LiveState->>EctoRepo: Persist state changes
-    LiveState->>PhoenixChannels: Broadcast state update
+    LiveState->>PubSub: Broadcast state changes
+    PubSub->>PhoenixChannels: Notify all subscribers
     PhoenixChannels->>ReactFrontend: Push state changes
     ReactFrontend->>User: Update UI with new state
+    
+    Note over User, EctoRepo: Background Job Processing
+    User->>ReactFrontend: Request mystery generation
+    ReactFrontend->>PhoenixChannels: Send job request
+    PhoenixChannels->>ObanJob: Enqueue mystery job
+    ObanJob->>ReactorWorkflow: Execute mystery workflow
+    ReactorWorkflow->>LLMProvider: Generate mystery content
+    LLMProvider->>ReactorWorkflow: Return structured mystery
+    ReactorWorkflow->>EctoRepo: Create game session
+    ObanJob->>PubSub: Broadcast job completion
+    PubSub->>PhoenixChannels: Notify job & session channels
+    PhoenixChannels->>ReactFrontend: Update job status & session list
 ```
 
 ## Authentication Flow
@@ -64,34 +81,60 @@ sequenceDiagram
     end
 ```
 
-## LLM Integration Architecture
+## Reactor Workflow & Job Architecture
 
 ```mermaid
 graph TD
-    subgraph "area51_llm Application"
-        Agent--facade-->InvestigationAgent
-        Agent--facade-->MysteryAgent
+    subgraph "Area51.Jobs - Job Management"
+        JobContext[Job Context Modules]
+        TelemetryHandler[Job Telemetry Handlers]
+        ObanWorker[Oban Workers]
+        
+        JobContext--manages-->MysteryGenJob[Mystery Generation Job]
+        TelemetryHandler--handles-->JobEvents[Job Lifecycle Events]
+        ObanWorker--executes-->ReactorWorkflows
+    end
 
-        subgraph "Investigation Agent"
-            InvestigationAgent--creates-->GraphAgent
-            GraphAgent--contains-->GenerateNarrative["Node: Generate Narrative"]
-            GraphAgent--contains-->ExtractClues["Node: Extract Clues"]
-            GraphAgent--contains-->ProcessOutcome["Node: Process Outcome"]
+    subgraph "Area51.Llm - Reactor Workflows"
+        subgraph "Investigation Reactor"
+            InvestigationReactor--step-->GenerateNarrative["Generate Narrative Step"]
+            InvestigationReactor--step-->ExtractClues["Extract Clues Step"]
+            InvestigationReactor--step-->ProcessOutcome["Process Outcome Step"]
             GenerateNarrative-->ExtractClues-->ProcessOutcome
         end
 
-        subgraph "Mystery Agent"
-            MysteryAgent--creates-->MysteryGraph["Mystery Graph Agent"]
-            MysteryGraph--contains-->GenerateScenario["Node: Generate Scenario"]
-            MysteryGraph--contains-->GenerateClues["Node: Generate Initial Clues"]
-            GenerateScenario-->GenerateClues
+        subgraph "Mystery Generation Reactor"
+            MysteryReactor--step-->GenerateDetails["Generate Mystery Details"]
+            MysteryReactor--step-->CreateNarrative["Generate Narrative"]
+            MysteryReactor--step-->ExtractInitialClues["Extract Initial Clues"]
+            GenerateDetails-->CreateNarrative-->ExtractInitialClues
+        end
+
+        subgraph "Reactor.Middleware - Observability"
+            OpenTelemetryMW[OpenTelemetry Middleware]
+            StructuredLogging[Structured Logging Middleware]
+            TelemetryEvents[Telemetry Events Middleware]
         end
     end
 
-    InvestigationChannel--calls-->Agent
-    Agent--sends prompts-->LLMProvider["LLM Provider API"]
-    LLMProvider--returns-->Agent
-    Agent--provides-->GameState["Game State Updates"]
+    subgraph "External Services"
+        LLMProvider["LLM Provider API"]
+        InstructorValidation["Instructor Schema Validation"]
+    end
+
+    InvestigationChannel--triggers-->InvestigationReactor
+    JobManagementChannel--enqueues-->MysteryGenJob
+    MysteryGenJob--executes-->MysteryReactor
+    
+    ReactorWorkflows--instrumented by-->OpenTelemetryMW
+    ReactorWorkflows--logs via-->StructuredLogging
+    ReactorWorkflows--emits-->TelemetryEvents
+    
+    ReactorWorkflows--calls-->LLMProvider
+    LLMProvider--validates via-->InstructorValidation
+    
+    JobEvents--broadcasts to-->PubSub[Phoenix PubSub]
+    PubSub--notifies-->LiveStateChannels[LiveState Channels]
 ```
 
 ## Component Interaction Model
@@ -102,22 +145,41 @@ graph LR
         RC["React Components"]--renders-->UI["User Interface"]
         LSH["useLiveState Hook"]--provides-->RC
         PCJ["Phoenix Channel JS"]--connects-->LSH
+        JobHook["useJobManagement Hook"]--tracks-->JobStatus["Job Status"]
     end
 
-    subgraph "Backend"
+    subgraph "Backend - Real-time Layer"
         PC["Phoenix Channels"]--handles-->Events["User Events"]
-        LS["LiveState"]--manages-->State["Server State"]
+        LS["LiveState Channels"]--manages-->State["Server State"]
+        JMC["Job Management Channel"]--tracks-->Jobs["Background Jobs"]
+        SLC["Session List Channel"]--syncs-->Sessions["Game Sessions"]
         PC--routes to-->LS
-        LS--broadcasts to-->PC
-        LS--calls-->LLMA["LLM Agent"]
-        Core["area51_core Models"]--defines-->State
-        LLMA--updates-->State
-        LS--uses-->Repo["Ecto Repo"]
+        LS--subscribes to-->PubSub["Phoenix PubSub"]
+        PubSub--broadcasts-->PC
+    end
+
+    subgraph "Backend - Processing Layer"
+        ReactorWF["Reactor Workflows"]--orchestrates-->Steps["Workflow Steps"]
+        ObanJobs["Oban Background Jobs"]--executes-->ReactorWF
+        JobContexts["Job-Specific Contexts"]--manages-->ObanJobs
+        TelemetryHandlers["Telemetry Handlers"]--monitors-->ObanJobs
+    end
+
+    subgraph "Backend - Data Layer"
+        Core["Area51.Core Models"]--defines-->State
+        DataSchemas["Area51.Data Schemas"]--maps-->Repo["Ecto Repo"]
         Repo--persists-->DB[("SQLite Database")]
     end
 
     PCJ--WebSocket-->PC
     User--interacts with-->UI
     UI--updates-->User
-    LLMA--calls-->LLM["External LLM"]
+    
+    LS--triggers-->ReactorWF
+    JMC--enqueues-->ObanJobs
+    ReactorWF--calls-->LLM["External LLM"]
+    ReactorWF--updates-->Core
+    ObanJobs--publishes to-->PubSub
+    TelemetryHandlers--broadcasts-->PubSub
+    Core--persists via-->DataSchemas
 ```
