@@ -23,7 +23,6 @@ interface JobManagementActions {
     message?: string;
     error?: string;
   }>;
-  refreshJobs: () => void;
   getJobStatus: (jobId: number) => Promise<{
     success: boolean;
     job?: Job;
@@ -83,9 +82,6 @@ export function useJobManagement(socket: any): UseJobManagementReturn {
       }
     },
 
-    refreshJobs() {
-      pushEvent('refresh_jobs', {});
-    },
 
     async getJobStatus(jobId) {
       try {

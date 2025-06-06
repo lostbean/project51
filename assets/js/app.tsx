@@ -319,7 +319,7 @@ const GameContainer = ({ createLiveState, sessionId, onBackToList }) => {
 };
 
 // Job Management Container that handles LiveState creation
-const JobManagementContainer = ({ createLiveState }) => {
+const JobManagementContainer = ({ createLiveState, onSessionCreated }) => {
   const [liveState, setLiveState] = useState(null);
 
   useEffect(() => {
@@ -331,7 +331,7 @@ const JobManagementContainer = ({ createLiveState }) => {
   }, []);
 
   if (liveState) {
-    return <JobQueueSidebar socket={liveState} />;
+    return <JobQueueSidebar socket={liveState} onSessionCreated={onSessionCreated} />;
   }
   return <></>;
 };
@@ -426,7 +426,10 @@ const App = () => {
       
       {/* Job Queue Sidebar */}
       {isAuthenticated && user && (
-        <JobManagementContainer createLiveState={createLiveState} />
+        <JobManagementContainer 
+          createLiveState={createLiveState} 
+          onSessionCreated={handleSessionSelect}
+        />
       )}
     </Box>
   );

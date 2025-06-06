@@ -29,13 +29,13 @@ import {
   FiAlertCircle,
   FiChevronDown,
   FiChevronUp,
-  FiRefreshCw,
 } from "react-icons/fi";
 import { Job } from "../types/job";
 import { useJobManagement } from "../hooks/use-job-management";
 
 interface JobQueueSidebarProps {
   socket: any;
+  onSessionCreated?: (sessionId: number) => void;
 }
 
 const JobItem: React.FC<{
@@ -195,10 +195,22 @@ const JobItem: React.FC<{
   );
 };
 
-const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({ socket }) => {
+const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({ socket, onSessionCreated }) => {
   const { isOpen: showCompleted, onToggle: toggleCompleted } = useDisclosure({ defaultIsOpen: false });
   
   const { state, actions } = useJobManagement(socket);
+  
+  // Watch for completed jobs that created sessions and notify parent
+  const [lastProcessedSessionId, setLastProcessedSessionId] = useState<number | null>(null);
+  
+  useEffect(() => {
+    if (state?.last_completed_session_id && 
+        state.last_completed_session_id !== lastProcessedSessionId && 
+        onSessionCreated) {
+      onSessionCreated(state.last_completed_session_id);
+      setLastProcessedSessionId(state.last_completed_session_id);
+    }
+  }, [state?.last_completed_session_id, onSessionCreated, lastProcessedSessionId]);
   
   if (!state) {
     return (
@@ -266,15 +278,6 @@ const JobQueueSidebar: React.FC<JobQueueSidebarProps> = ({ socket }) => {
             </HStack>
           </VStack>
           
-          <Tooltip label="Refresh jobs">
-            <IconButton
-              size="sm"
-              icon={<FiRefreshCw />}
-              onClick={actions.refreshJobs}
-              aria-label="Refresh jobs"
-              variant="ghost"
-            />
-          </Tooltip>
         </HStack>
 
         <Divider />

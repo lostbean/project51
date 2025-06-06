@@ -68,6 +68,14 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
   - Create container components that manage LiveState socket creation
   - Pass sockets as props to child components
   - Follow existing patterns: `SessionListContainer`, `GameContainer`, etc.
+- **State-driven navigation**:
+  - Use state changes to trigger automatic navigation (e.g., job completion → session access)
+  - Track processed events to prevent navigation loops when users navigate back
+  - Use local component state to debounce automatic actions
+- **Real-time UI principles**:
+  - Avoid manual refresh buttons when LiveState provides automatic updates
+  - Trust LiveState for real-time updates - remove redundant refresh mechanisms
+  - State changes should immediately reflect in UI without user intervention
 
 # React Usage
 
@@ -123,8 +131,26 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 - **Adding new job types**: Only requires creating new context module, telemetry handler, data schema, and adding to registry - zero modification of existing jobs
 - **Self-contained handlers**: Each job type implements `JobHandler` behavior and handles its own telemetry events (`handle_job_start/1`, `handle_job_completion/2`, `handle_job_failure/2`, `handle_job_exception/4`)
 
+## Job-to-Session Integration Pattern
+
+- **Unified creation workflows**: Use job-based systems for all entity creation to ensure consistency and async processing
+- **Automatic session creation**: Workers should create persistent entities (like game sessions) after successful job completion
+- **Multi-channel broadcasting**: Use PubSub to broadcast completion events to multiple channels:
+  - Job management channels for progress tracking
+  - Session list channels for real-time UI updates
+  - Include entity IDs in completion broadcasts for frontend handling
+- **Session access integration**: Completed jobs should automatically make created entities accessible in recent files/lists
+
+## LiveState Navigation Patterns
+
+- **Automatic navigation from job completion**: Use job completion events to trigger automatic entity access
+- **Navigation loop prevention**: Track processed entity IDs in component state to prevent infinite navigation loops
+- **State-driven UX**: Let job completion automatically guide user to created content while maintaining ability to navigate back
+- **Cross-channel coordination**: Job management and entity list channels should coordinate for seamless user experience
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER start the `mix phx.server` from the code agent. The server is normally already running, try to access it. If you cant ask me to start it.

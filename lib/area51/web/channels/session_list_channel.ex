@@ -12,7 +12,6 @@ defmodule Area51.Web.SessionListChannel do
   use LiveState.Channel, web_module: Area51.Web
 
   alias Area51.Data.GameSession
-  alias Area51.LLM.Agent
   alias Area51.Web.Auth.Guardian
   alias Area51.Web.ChannelInit
 
@@ -38,6 +37,9 @@ defmodule Area51.Web.SessionListChannel do
         {:ok, user} ->
           :logger.info("Authenticated WebSocket connection for user: #{user.username}")
 
+          # Subscribe to session creation events for real-time updates
+          Phoenix.PubSub.subscribe(Area51.Data.PubSub, "session_list")
+
           # Fetch the list of available sessions
           sessions = GameSession.list_sessions_for_ui()
 
@@ -57,49 +59,18 @@ defmodule Area51.Web.SessionListChannel do
   end
 
   @impl true
-  def handle_event("create_session" = event, %{"topic" => topic}, state) do
-    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
-      attributes: [
-        {:event, event}
-      ]
-    } do
-      # Generate a new mystery based on the provided topic
-      case Agent.generate_mystery_with_topic(topic) do
-        {:ok, mystery_data} ->
-          # Create a new game session with the mystery data
-          GameSession.create_game_session(mystery_data)
-
-          # Fetch updated session list
-          updated_sessions = GameSession.list_sessions_for_ui()
-
-          # Return the new session ID in the response so the client can join it
-          {:noreply, %{state | sessions: updated_sessions}}
-
-        {:error, reason} ->
-          :logger.error("Error generating mystery: #{reason}")
-          {:noreply, %{state | error: "Failed to create new session"}}
-      end
-    end
-  end
-
-  @impl true
-  def handle_event("refresh_sessions" = event, _payload, state) do
-    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
-      attributes: [
-        {:event, event}
-      ]
-    } do
-      # Fetch updated session list
-      updated_sessions = GameSession.list_sessions_for_ui()
-
-      {:noreply, %{state | sessions: updated_sessions}}
-    end
-  end
-
-  @impl true
-  def handle_event(unmatched_event, unmatched_event_payload, _) do
+  def handle_event(unmatched_event, unmatched_event_payload, state) do
     :logger.warning(
       "received an unmatched event: '#{unmatched_event}' with payload '#{inspect(unmatched_event_payload)}'"
     )
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_message({:session_created, %{session: _session}}, state) do
+    # Refresh the session list when a new session is created
+    updated_sessions = GameSession.list_sessions_for_ui()
+    {:noreply, %{state | sessions: updated_sessions}}
   end
 end

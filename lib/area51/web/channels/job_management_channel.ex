@@ -61,7 +61,7 @@ defmodule Area51.Web.JobManagementChannel do
   end
 
   @impl true
-  def handle_message({:job_status_update, _job_update}, state) do
+  def handle_message({:job_status_update, job_update}, state) do
     # Refresh job lists when we get updates
     user_id = state.user_id
     updated_jobs = MysteryAgent.get_jobs_for_sidebar(user_id)
@@ -72,6 +72,16 @@ defmodule Area51.Web.JobManagementChannel do
         completed_jobs: updated_jobs.completed,
         error: nil
     }
+
+    # If job completed successfully and has a session_id, store it for frontend access
+    new_state =
+      case job_update do
+        %{status: :completed, session_id: session_id} when is_integer(session_id) ->
+          Map.put(new_state, :last_completed_session_id, session_id)
+
+        _ ->
+          new_state
+      end
 
     {:noreply, new_state}
   end
@@ -168,28 +178,6 @@ defmodule Area51.Web.JobManagementChannel do
   end
 
   @impl true
-  def handle_event("refresh_jobs" = event, _payload, state) do
-    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
-      attributes: [
-        {:event, event},
-        {:user_id, state.user_id}
-      ]
-    } do
-      # Refresh job lists
-      updated_jobs = MysteryAgent.get_jobs_for_sidebar(state.user_id)
-
-      new_state = %{
-        state
-        | running_jobs: updated_jobs.running,
-          completed_jobs: updated_jobs.completed,
-          error: nil
-      }
-
-      {:noreply, new_state}
-    end
-  end
-
-  @impl true
   def handle_event("get_job_status" = event, %{"job_id" => job_id}, state) do
     OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
       attributes: [
@@ -199,7 +187,7 @@ defmodule Area51.Web.JobManagementChannel do
       ]
     } do
       case MysteryAgent.get_mystery_job_status(job_id) do
-        {:ok, job} ->
+        {:ok, _job} ->
           {:noreply, state}
 
         {:error, :not_found} ->

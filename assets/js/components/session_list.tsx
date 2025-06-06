@@ -26,7 +26,6 @@ import { useAuth } from "../auth/use-auth";
 import { useToast } from "@chakra-ui/react";
 import { Divider } from "@chakra-ui/react";
 import {
-  FiRefreshCw,
   FiPlusCircle,
   FiClock,
   FiUserPlus,
@@ -35,75 +34,10 @@ import {
 } from "react-icons/fi";
 
 const SessionList = ({ socket, onSessionSelect, recentSessions = [], jobManagementSocket }) => {
-  const [topic, setTopic] = useState("");
   const [state, pushEvent] = useLiveState(socket, { sessions: [] });
   const toast = useToast();
   const { user } = useAuth();
 
-  // Add keyboard shortcut for creating new session with Enter key
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey && topic.trim()) {
-      e.preventDefault();
-      handleCreateSession();
-    }
-  };
-
-  const handleCreateSession = async () => {
-    if (topic.trim() === "") {
-      toast({
-        title: "Topic Required",
-        description: "Please enter a topic for the new investigation.",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      const response = await pushEvent("create_session", {
-        topic: topic.trim(),
-      });
-      if (response.session_id) {
-        toast({
-          title: "Investigation Created",
-          description: "Your new investigation session has been created.",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        onSessionSelect(response.session_id);
-      } else if (response.error) {
-        toast({
-          title: "Error",
-          description: response.error,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    } catch (error) {
-      console.error("Error creating session:", error);
-      toast({
-        title: "Creation Failed",
-        description: "Failed to create new investigation. Please try again.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleRefresh = () => {
-    pushEvent("refresh_sessions", {});
-    toast({
-      title: "Refreshed",
-      description: "Investigation list has been updated.",
-      status: "info",
-      duration: 2000,
-      isClosable: true,
-    });
-  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -181,7 +115,7 @@ const SessionList = ({ socket, onSessionSelect, recentSessions = [], jobManageme
           Uncover the truth behind humanity's most guarded secrets
         </Text>
         <Text fontSize="sm" color="terminal.600" mt={3} fontFamily="mono">
-          Select an investigation to join or create a new one below
+          Select an investigation to join or use AI to generate a new one below
         </Text>
         <HStack justify="center" mt={3} spacing={4}>
           <Badge
@@ -192,7 +126,7 @@ const SessionList = ({ socket, onSessionSelect, recentSessions = [], jobManageme
             borderColor="terminal.700"
             fontFamily="mono"
           >
-            Press Enter to create a new investigation
+            Use AI Mystery Generator to create new investigations
           </Badge>
           <Badge
             bg="rgba(0, 230, 58, 0.1)"
@@ -245,93 +179,34 @@ const SessionList = ({ socket, onSessionSelect, recentSessions = [], jobManageme
           <Text as="span" color="terminal.500" mr={1}>
             [*]
           </Text>
-          Initialize New Investigation
+          AI Mystery Generator
         </Heading>
-        <HStack>
-          <Input
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="> Enter investigation topic (e.g., 'missing scientists', 'strange signals')"
-            size="md"
-            bg="area51.800"
-            color="terminal.200"
-            fontFamily="mono"
-            fontSize="md"
-            borderColor="terminal.700"
-            borderRadius="sm"
-            spellCheck="false"
-            autoComplete="off"
-            _hover={{ bg: "area51.800", borderColor: "terminal.600" }}
-            _focus={{
-              bg: "area51.800",
-              borderColor: "terminal.500",
-              boxShadow: "0 0 10px rgba(0, 230, 58, 0.2)",
-            }}
-            sx={{
-              caretColor: "terminal.400",
-              caretShape: "block",
-            }}
-            flex="1"
-          />
-          <Button
-            leftIcon={<FiPlusCircle />}
-            colorScheme="brand"
-            onClick={handleCreateSession}
-            size="md"
-            _hover={{
-              transform: "translateY(-2px)",
-              boxShadow: "terminal",
-            }}
-            _active={{
-              transform: "translateY(1px)",
-            }}
-          >
-            CREATE
-          </Button>
-          <Button
-            leftIcon={<FiRefreshCw />}
-            variant="outline"
-            onClick={handleRefresh}
-            size="md"
-            borderColor="terminal.600"
-            color="terminal.400"
-            _hover={{
-              color: "terminal.300",
-              boxShadow: "0 0 10px rgba(0, 230, 58, 0.2)",
-            }}
-          >
-            REFRESH
-          </Button>
+        
+        <HStack justify="space-between" align="center" mb={4}>
+          <VStack spacing={0} align="start">
+            <Text color="terminal.400" fontSize="md" fontWeight="bold" textTransform="uppercase" letterSpacing="1px">
+              Initialize New Investigation
+            </Text>
+            <Text color="terminal.600" fontSize="sm">
+              Let the AI create a mystery investigation for you. Generated investigations will automatically appear in your files.
+            </Text>
+          </VStack>
+          {user && jobManagementSocket && (
+            <MysteryGenerationButton
+              socket={jobManagementSocket}
+              onMysteryGenerated={(jobId) => {
+                toast({
+                  title: "Mystery Generation Started",
+                  description: "Check the job queue sidebar for progress. Completed mysteries will be added to your files automatically.",
+                  status: "info",
+                  duration: 4000,
+                  isClosable: true,
+                });
+              }}
+            />
+          )}
         </HStack>
         
-        {/* Mystery Generation Section */}
-        <Box mt={6} pt={4} borderTop="1px solid" borderColor="terminal.700">
-          <HStack justify="space-between" align="center" mb={2}>
-            <VStack spacing={0} align="start">
-              <Text color="terminal.400" fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="1px">
-                AI Mystery Generator
-              </Text>
-              <Text color="terminal.600" fontSize="xs">
-                Let the AI create a mystery investigation for you
-              </Text>
-            </VStack>
-            {user && jobManagementSocket && (
-              <MysteryGenerationButton
-                socket={jobManagementSocket}
-                onMysteryGenerated={(jobId) => {
-                  toast({
-                    title: "Mystery Generation Started",
-                    description: "Check the job queue sidebar for progress",
-                    status: "info",
-                    duration: 3000,
-                    isClosable: true,
-                  });
-                }}
-              />
-            )}
-          </HStack>
-        </Box>
       </Box>
 
       {recentSessionsData.length > 0 && (

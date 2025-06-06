@@ -10,6 +10,7 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
   alias Area51.LLM.Reactors.MysteryGenerationReactor
   alias Area51.LLM.Schemas.Mystery
   alias Area51.Jobs.MysteryGenerationJob
+  alias Area51.Data.GameSession
 
   require Logger
 
@@ -50,10 +51,20 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
             starting_narrative: mystery.narrative
           }
 
+          # Create a game session with the generated mystery
+          game_session = GameSession.create_game_session(mystery_data)
+
           # Update job with completion status and result
           MysteryGenerationJob.complete_job(job_id, mystery_data)
 
-          # Broadcast completion
+          # Broadcast session creation for real-time session list updates
+          Phoenix.PubSub.broadcast(
+            Area51.Data.PubSub,
+            "session_list",
+            {:session_created, %{session: game_session}}
+          )
+
+          # Broadcast completion with session ID for frontend handling
           Phoenix.PubSub.broadcast(
             Area51.Data.PubSub,
             "job_updates:#{user_id}",
@@ -62,13 +73,15 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
                job_id: job_id,
                status: :completed,
                result: mystery_data,
+               session_id: game_session.id,
                completed_at: DateTime.utc_now()
              }}
           )
 
           Logger.info("Mystery generation completed successfully", %{
             job_id: job_id,
-            title: mystery.title
+            title: mystery.title,
+            session_id: game_session.id
           })
 
           :ok
