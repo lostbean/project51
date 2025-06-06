@@ -3,13 +3,14 @@ defmodule Area51.LLM.MysteryAgent do
   An agent responsible for generating new mysteries for the Area 51 investigation game
   using a Large Language Model (LLM).
 
-  This module now uses the Reactor infrastructure with the MysteryGenerationReactor
-  to create mysteries with a title, description, solution, and starting narrative.
-  It can generate mysteries based on a randomly selected type or a specified topic.
+  This module provides both synchronous and asynchronous mystery generation.
+  Synchronous generation uses the Reactor infrastructure directly, while
+  asynchronous generation enqueues jobs with Oban for background processing.
   """
 
   alias Area51.LLM.Reactors.MysteryGenerationReactor
   alias Area51.LLM.Schemas.Mystery
+  alias Area51.Jobs
 
   require Logger
 
@@ -70,5 +71,73 @@ defmodule Area51.LLM.MysteryAgent do
   """
   def generate_mystery_with_topic(topic) do
     generate_mystery(topic)
+  end
+
+  @doc """
+  Generate a mystery asynchronously using Oban jobs.
+
+  Returns {:ok, job} where job is the Area51.Jobs.MysteryGenerationJob record.
+  The actual mystery generation happens in the background.
+
+  Options:
+  - `:user_id` - Required. ID of the user requesting the mystery
+  - `:theme` - Optional. Specific theme, otherwise random
+  - `:difficulty` - Optional. Difficulty level (default: "medium")
+  """
+  def generate_mystery_async(opts) when is_list(opts) do
+    user_id = Keyword.fetch!(opts, :user_id)
+    theme = Keyword.get(opts, :theme) || Enum.random(@mystery_types)
+    difficulty = Keyword.get(opts, :difficulty, "medium")
+
+    attrs = %{
+      theme: theme,
+      difficulty: difficulty,
+      user_id: user_id
+    }
+
+    Jobs.create_mystery_generation_job(attrs)
+  end
+
+  def generate_mystery_async(%{user_id: user_id} = attrs) do
+    attrs = %{
+      theme: attrs[:theme] || Enum.random(@mystery_types),
+      difficulty: attrs[:difficulty] || "medium",
+      user_id: user_id
+    }
+
+    Jobs.create_mystery_generation_job(attrs)
+  end
+
+  @doc """
+  Get the status of a mystery generation job.
+  """
+  def get_mystery_job_status(job_id) do
+    case Jobs.get_mystery_generation_job(job_id) do
+      nil -> {:error, :not_found}
+      job -> {:ok, job}
+    end
+  end
+
+  @doc """
+  List mystery generation jobs for a user.
+
+  Options are passed through to Jobs.list_mystery_generation_jobs/2
+  """
+  def list_mystery_jobs(user_id, opts \\ []) do
+    Jobs.list_mystery_generation_jobs(user_id, opts)
+  end
+
+  @doc """
+  Get jobs for the sidebar display: running + last N completed.
+  """
+  def get_jobs_for_sidebar(user_id, completed_limit \\ 10) do
+    Jobs.list_jobs_for_sidebar(user_id, completed_limit)
+  end
+
+  @doc """
+  Cancel a mystery generation job.
+  """
+  def cancel_mystery_job(job_id) do
+    Jobs.cancel_mystery_generation_job(job_id)
   end
 end

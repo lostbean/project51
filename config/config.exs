@@ -115,6 +115,24 @@ config :area51, Area51.Data.Repo, telemetry_prefix: [:area51_data, :repo]
 
 config :opentelemetry_ecto, tracer_id: :area51_tracer
 
+# Configure Oban
+config :area51, Oban,
+  engine: Oban.Engines.Basic,
+  repo: Area51.Data.Repo,
+  notifier: Oban.Notifiers.PG, # Use PG notifier
+  peer: false, # Disable peer system for SQLite3 compatibility
+  prefix: false, # Disable table prefixes for SQLite3 compatibility
+  plugins: [
+    {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7}, # Keep jobs for 7 days
+    {Oban.Plugins.Cron, crontab: []}, # Enable cron scheduling if needed
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)} # Rescue orphaned jobs
+  ],
+  queues: [
+    mystery_generation: 2, # Allow 2 concurrent mystery generation jobs
+    default: 5
+  ],
+  dispatch_cooldown: 5
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

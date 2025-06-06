@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import Game from "./components/game";
 import SessionList from "./components/session_list";
-import { ChakraProvider, extendTheme, Center, Spinner } from "@chakra-ui/react";
+import JobQueueSidebar from "./components/job-queue-sidebar";
+import MysteryGenerationButton from "./components/mystery-generation-button";
+import { ChakraProvider, extendTheme, Center, Spinner, Box } from "@chakra-ui/react";
 import { Auth0Provider51 } from "./auth/auth-provider";
 import { useAuth } from "./auth/use-auth";
 import { ProtectedRoute } from "./auth/protected-route";
+import { useJobQueue } from "./hooks/use-job-queue";
 
 import LiveState from "phx-live-state";
 
@@ -320,6 +323,18 @@ const App = () => {
     return storedSessions ? JSON.parse(storedSessions) : [];
   });
   const { user, isAuthenticated, getToken } = useAuth();
+  
+  // Job queue management
+  const {
+    jobs,
+    isConnected: jobQueueConnected,
+    cancelJob,
+    refreshJobs,
+    error: jobQueueError
+  } = useJobQueue({ 
+    userId: user?.sub || '', 
+    socketUrl: "ws://localhost:4000/socket" 
+  });
 
   // Function to create a LiveState connection with user data
   const createLiveState = async (topic: string) => {
@@ -362,25 +377,45 @@ const App = () => {
     setCurrentSessionId(null);
   };
 
-  // If no session is selected, show the session list
-  if (currentSessionId === null) {
-    return (
-      <SessionListContainer
-        createLiveState={createLiveState}
-        onSessionSelect={handleSessionSelect}
-        recentSessions={recentSessions}
-      />
-    );
-  } else {
-    // Otherwise show the game with the selected session
-    return (
-      <GameContainer
-        createLiveState={createLiveState}
-        sessionId={currentSessionId}
-        onBackToList={handleBackToList}
-      />
-    );
-  }
+  // Main content based on current state
+  const renderMainContent = () => {
+    if (currentSessionId === null) {
+      return (
+        <SessionListContainer
+          createLiveState={createLiveState}
+          onSessionSelect={handleSessionSelect}
+          recentSessions={recentSessions}
+        />
+      );
+    } else {
+      return (
+        <GameContainer
+          createLiveState={createLiveState}
+          sessionId={currentSessionId}
+          onBackToList={handleBackToList}
+        />
+      );
+    }
+  };
+
+  return (
+    <Box position="relative">
+      {/* Main content with margin to account for sidebar */}
+      <Box mr="350px">
+        {renderMainContent()}
+      </Box>
+      
+      {/* Job Queue Sidebar */}
+      {isAuthenticated && user && (
+        <JobQueueSidebar
+          jobs={jobs}
+          onJobCancel={cancelJob}
+          onJobRefresh={refreshJobs}
+          isConnected={jobQueueConnected}
+        />
+      )}
+    </Box>
+  );
 };
 
 const rootElement = document.getElementById("root");

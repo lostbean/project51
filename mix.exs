@@ -63,6 +63,7 @@ defmodule Area51.MixProject do
       {:reactor, "~> 0.15.2"},
       {:instructor, "~> 0.1.0"},
       {:typed_struct, "~> 0.3"},
+      {:oban, "~> 2.19"},
 
       # From area51_web
       {:cors_plug, "~> 3.0"},

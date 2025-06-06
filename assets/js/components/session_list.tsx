@@ -19,6 +19,8 @@ import {
   Icon,
 } from "@chakra-ui/react";
 import UserMenu from "./user-menu";
+import MysteryGenerationButton from "./mystery-generation-button";
+import { useAuth } from "../auth/use-auth";
 
 // Import components from their specific packages to avoid import issues
 import { useToast } from "@chakra-ui/react";
@@ -36,6 +38,7 @@ const SessionList = ({ socket, onSessionSelect, recentSessions = [] }) => {
   const [topic, setTopic] = useState("");
   const [state, pushEvent] = useLiveState(socket, { sessions: [] });
   const toast = useToast();
+  const { user } = useAuth();
 
   // Add keyboard shortcut for creating new session with Enter key
   const handleKeyDown = (e) => {
@@ -301,6 +304,34 @@ const SessionList = ({ socket, onSessionSelect, recentSessions = [] }) => {
             REFRESH
           </Button>
         </HStack>
+        
+        {/* Mystery Generation Section */}
+        <Box mt={6} pt={4} borderTop="1px solid" borderColor="terminal.700">
+          <HStack justify="space-between" align="center" mb={2}>
+            <VStack spacing={0} align="start">
+              <Text color="terminal.400" fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="1px">
+                AI Mystery Generator
+              </Text>
+              <Text color="terminal.600" fontSize="xs">
+                Let the AI create a mystery investigation for you
+              </Text>
+            </VStack>
+            {user && (
+              <MysteryGenerationButton
+                userId={user.sub}
+                onMysteryGenerated={(jobId) => {
+                  toast({
+                    title: "Mystery Generation Started",
+                    description: "Check the job queue sidebar for progress",
+                    status: "info",
+                    duration: 3000,
+                    isClosable: true,
+                  });
+                }}
+              />
+            )}
+          </HStack>
+        </Box>
       </Box>
 
       {recentSessionsData.length > 0 && (

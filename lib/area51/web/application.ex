@@ -12,12 +12,16 @@ defmodule Area51.Web.Application do
     # Initialize OpenTelemetry
     setup_opentelemetry()
 
+    # Attach Oban telemetry handlers
+    Area51.Jobs.ObanTelemetryHandler.attach_handlers()
+
     children = [
       Area51.Data.Repo,
       {Ecto.Migrator,
        repos: Application.fetch_env!(:area51, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:area51, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Area51.Data.PubSub},
+      {Oban, Application.fetch_env!(:area51, Oban)},
       Area51.Web.Telemetry,
       Area51.Web.PromEx,
       Area51.Web.Auth.Guardian.Strategy,
