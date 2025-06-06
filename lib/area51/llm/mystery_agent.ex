@@ -10,7 +10,7 @@ defmodule Area51.LLM.MysteryAgent do
 
   alias Area51.LLM.Reactors.MysteryGenerationReactor
   alias Area51.LLM.Schemas.Mystery
-  alias Area51.Jobs
+  alias Area51.Jobs.MysteryGenerationJob
 
   require Logger
 
@@ -76,7 +76,7 @@ defmodule Area51.LLM.MysteryAgent do
   @doc """
   Generate a mystery asynchronously using Oban jobs.
 
-  Returns {:ok, job} where job is the Area51.Jobs.MysteryGenerationJob record.
+  Returns {:ok, job} where job is the Area51.Data.Jobs.MysteryGenerationJob record.
   The actual mystery generation happens in the background.
 
   Options:
@@ -95,7 +95,7 @@ defmodule Area51.LLM.MysteryAgent do
       user_id: user_id
     }
 
-    Jobs.create_mystery_generation_job(attrs)
+    MysteryGenerationJob.create_mystery_generation_job(attrs)
   end
 
   def generate_mystery_async(%{user_id: user_id} = attrs) do
@@ -105,14 +105,14 @@ defmodule Area51.LLM.MysteryAgent do
       user_id: user_id
     }
 
-    Jobs.create_mystery_generation_job(attrs)
+    MysteryGenerationJob.create_mystery_generation_job(attrs)
   end
 
   @doc """
   Get the status of a mystery generation job.
   """
   def get_mystery_job_status(job_id) do
-    case Jobs.get_mystery_generation_job(job_id) do
+    case MysteryGenerationJob.get_mystery_generation_job(job_id) do
       nil -> {:error, :not_found}
       job -> {:ok, job}
     end
@@ -121,23 +121,23 @@ defmodule Area51.LLM.MysteryAgent do
   @doc """
   List mystery generation jobs for a user.
 
-  Options are passed through to Jobs.list_mystery_generation_jobs/2
+  Options are passed through to MysteryGenerationJob.list_mystery_generation_jobs/2
   """
   def list_mystery_jobs(user_id, opts \\ []) do
-    Jobs.list_mystery_generation_jobs(user_id, opts)
+    MysteryGenerationJob.list_mystery_generation_jobs(user_id, opts)
   end
 
   @doc """
   Get jobs for the sidebar display: running + last N completed.
   """
   def get_jobs_for_sidebar(user_id, completed_limit \\ 10) do
-    Jobs.list_jobs_for_sidebar(user_id, completed_limit)
+    MysteryGenerationJob.list_jobs_for_sidebar(user_id, completed_limit)
   end
 
   @doc """
   Cancel a mystery generation job.
   """
   def cancel_mystery_job(job_id) do
-    Jobs.cancel_mystery_generation_job(job_id)
+    MysteryGenerationJob.cancel_mystery_generation_job(job_id)
   end
 end

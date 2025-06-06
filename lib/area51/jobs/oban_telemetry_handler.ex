@@ -1,13 +1,18 @@
 defmodule Area51.Jobs.ObanTelemetryHandler do
   @moduledoc """
-  Telemetry handler for syncing Oban job events with Area51.Jobs records.
+  Generic telemetry handler for syncing Oban job events with Area51 job records.
 
-  This handler listens to Oban telemetry events and automatically updates
-  our custom job records to keep them in sync with Oban's job states.
+  This handler listens to Oban telemetry events and dispatches them to
+  job-specific handlers that implement the Area51.Jobs.JobHandler behavior.
+  This design allows for loosely coupled, extensible job handling.
   """
 
-  alias Area51.Jobs
   require Logger
+
+  # Registry of job handlers - modules that implement JobHandler behavior
+  @job_handlers [
+    Area51.Jobs.MysteryGenerationJob.TelemetryHandler
+  ]
 
   @doc """
   Attaches telemetry handlers for Oban events.
@@ -37,28 +42,20 @@ defmodule Area51.Jobs.ObanTelemetryHandler do
   end
 
   @doc """
-  Handles Oban telemetry events and syncs with our job records.
+  Handles Oban telemetry events and dispatches to appropriate job handlers.
   """
-  def handle_event([:oban, :job, :start], measurements, metadata, _config) do
-    %{system_time: _start_time} = measurements
-    %{job: job} = metadata
+  def handle_event([:oban, :job, :start], _measurements, metadata, _config) do
+    %{job: oban_job} = metadata
 
-    case get_mystery_job_from_oban_job(job) do
-      nil ->
-        # Not one of our mystery generation jobs
-        :ok
+    with {handler_module, job_record} <- find_handler_for_job(oban_job) do
+      Logger.debug("Oban job started", %{
+        oban_job_id: oban_job.id,
+        job_record_id: job_record.id,
+        worker: oban_job.worker,
+        handler: handler_module
+      })
 
-      mystery_job ->
-        Logger.debug("Oban job started", %{
-          oban_job_id: job.id,
-          mystery_job_id: mystery_job.id,
-          worker: job.worker
-        })
-
-        # Update status to running if not already
-        if mystery_job.status != :running do
-          Jobs.update_job_status(mystery_job.id, :running)
-        end
+      handler_module.handle_job_start(job_record)
     end
   rescue
     e ->
@@ -68,54 +65,40 @@ defmodule Area51.Jobs.ObanTelemetryHandler do
       })
   end
 
-  def handle_event([:oban, :job, :stop], measurements, metadata, _config) do
-    %{duration: _duration} = measurements
-    %{job: job, result: result} = metadata
+  def handle_event([:oban, :job, :stop], _measurements, metadata, _config) do
+    %{job: oban_job, result: result} = metadata
 
-    case get_mystery_job_from_oban_job(job) do
-      nil ->
-        # Not one of our mystery generation jobs
-        :ok
+    with {handler_module, job_record} <- find_handler_for_job(oban_job) do
+      Logger.debug("Oban job stopped", %{
+        oban_job_id: oban_job.id,
+        job_record_id: job_record.id,
+        result: result,
+        worker: oban_job.worker,
+        handler: handler_module
+      })
 
-      mystery_job ->
-        Logger.debug("Oban job stopped", %{
-          oban_job_id: job.id,
-          mystery_job_id: mystery_job.id,
-          result: result,
-          worker: job.worker
-        })
+      case result do
+        :ok ->
+          handler_module.handle_job_completion(job_record, result)
 
-        # Update based on the result
-        case result do
-          :ok ->
-            # Job completed successfully, but we might have already updated
-            # the status in the worker, so only update if still running
-            if mystery_job.status == :running do
-              Jobs.update_job_status(mystery_job.id, :completed, %{progress: 100})
-            end
+        {:ok, _value} ->
+          handler_module.handle_job_completion(job_record, result)
 
-          {:ok, _value} ->
-            # Same as :ok
-            if mystery_job.status == :running do
-              Jobs.update_job_status(mystery_job.id, :completed, %{progress: 100})
-            end
+        {:error, reason} ->
+          handler_module.handle_job_failure(job_record, reason)
 
-          {:error, reason} ->
-            # Job failed
-            Jobs.fail_job(mystery_job.id, inspect(reason))
+        {:snooze, _seconds} ->
+          # Job was snoozed, no action needed
+          :ok
 
-          {:snooze, _seconds} ->
-            # Job was snoozed, keep it as running/pending
-            :ok
-
-          _other ->
-            # Unexpected result
-            Logger.warning("Unexpected Oban job result", %{
-              oban_job_id: job.id,
-              mystery_job_id: mystery_job.id,
-              result: result
-            })
-        end
+        _other ->
+          Logger.warning("Unexpected Oban job result", %{
+            oban_job_id: oban_job.id,
+            job_record_id: job_record.id,
+            result: result,
+            handler: handler_module
+          })
+      end
     end
   rescue
     e ->
@@ -125,28 +108,20 @@ defmodule Area51.Jobs.ObanTelemetryHandler do
       })
   end
 
-  def handle_event([:oban, :job, :exception], measurements, metadata, _config) do
-    %{duration: _duration} = measurements
-    %{job: job, kind: kind, reason: reason, stacktrace: stacktrace} = metadata
+  def handle_event([:oban, :job, :exception], _measurements, metadata, _config) do
+    %{job: oban_job, kind: kind, reason: reason, stacktrace: stacktrace} = metadata
 
-    case get_mystery_job_from_oban_job(job) do
-      nil ->
-        # Not one of our mystery generation jobs
-        :ok
+    with {handler_module, job_record} <- find_handler_for_job(oban_job) do
+      Logger.error("Oban job exception", %{
+        oban_job_id: oban_job.id,
+        job_record_id: job_record.id,
+        kind: kind,
+        reason: inspect(reason),
+        worker: oban_job.worker,
+        handler: handler_module
+      })
 
-      mystery_job ->
-        error_msg = Exception.format(kind, reason, stacktrace)
-
-        Logger.error("Oban job exception", %{
-          oban_job_id: job.id,
-          mystery_job_id: mystery_job.id,
-          kind: kind,
-          reason: inspect(reason),
-          worker: job.worker
-        })
-
-        # Mark job as failed
-        Jobs.fail_job(mystery_job.id, error_msg)
+      handler_module.handle_job_exception(job_record, kind, reason, stacktrace)
     end
   rescue
     e ->
@@ -158,22 +133,14 @@ defmodule Area51.Jobs.ObanTelemetryHandler do
 
   # Private functions
 
-  defp get_mystery_job_from_oban_job(%{worker: "Area51.LLM.Workers.MysteryGenerationWorker"} = job) do
-    case Jobs.get_mystery_generation_job_by_oban_id(job.id) do
-      nil ->
-        # Try to find by job args if oban_job_id wasn't set yet
-        case job.args do
-          %{"job_id" => job_id} when is_integer(job_id) ->
-            Jobs.get_mystery_generation_job(job_id)
-
-          _ ->
-            nil
+  defp find_handler_for_job(oban_job) do
+    Enum.find_value(@job_handlers, fn handler_module ->
+      if handler_module.worker_module() == oban_job.worker do
+        case handler_module.find_job_from_oban(oban_job) do
+          nil -> nil
+          job_record -> {handler_module, job_record}
         end
-
-      mystery_job ->
-        mystery_job
-    end
+      end
+    end)
   end
-
-  defp get_mystery_job_from_oban_job(_job), do: nil
 end

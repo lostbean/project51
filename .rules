@@ -114,6 +114,15 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 - Avoid complex alias configurations (`@/`) - use relative imports to prevent build issues
 - ESBuild plugins can be tricky to configure correctly - prefer simple, explicit paths
 
+## Job Architecture Pattern
+
+- **Scalable job organization**: Use job-specific context modules (`Area51.Jobs.MysteryGenerationJob`) instead of a monolithic `Area51.Jobs` module
+- **Data layer separation**: Place Ecto schemas and queries in `Area51.Data.Jobs.*` with embedded data access functions
+- **Loosely coupled telemetry**: Use behavior pattern (`Area51.Jobs.JobHandler`) for job-specific telemetry handlers
+- **Registry-based dispatch**: Generic `ObanTelemetryHandler` dispatches to job-specific handlers via `@job_handlers` list
+- **Adding new job types**: Only requires creating new context module, telemetry handler, data schema, and adding to registry - zero modification of existing jobs
+- **Self-contained handlers**: Each job type implements `JobHandler` behavior and handles its own telemetry events (`handle_job_start/1`, `handle_job_completion/2`, `handle_job_failure/2`, `handle_job_exception/4`)
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.

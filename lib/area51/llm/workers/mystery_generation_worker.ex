@@ -9,7 +9,7 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
 
   alias Area51.LLM.Reactors.MysteryGenerationReactor
   alias Area51.LLM.Schemas.Mystery
-  alias Area51.Jobs
+  alias Area51.Jobs.MysteryGenerationJob
 
   require Logger
 
@@ -20,7 +20,7 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
 
     try do
       # Update job status to running
-      Jobs.update_job_status(job_id, :running)
+      MysteryGenerationJob.update_job_status(job_id, :running)
 
       # Broadcast job status update
       Phoenix.PubSub.broadcast(
@@ -37,7 +37,7 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
       })
 
       # Update progress to show we've started
-      Jobs.update_job_progress(job_id, 10)
+      MysteryGenerationJob.update_job_progress(job_id, 10)
 
       # Run the mystery generation reactor
       case Reactor.run(MysteryGenerationReactor, %{theme: theme, difficulty: difficulty}) do
@@ -51,7 +51,7 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
           }
 
           # Update job with completion status and result
-          Jobs.complete_job(job_id, mystery_data)
+          MysteryGenerationJob.complete_job(job_id, mystery_data)
 
           # Broadcast completion
           Phoenix.PubSub.broadcast(
@@ -80,7 +80,7 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
           })
 
           # Update job with error status
-          Jobs.fail_job(job_id, reason)
+          MysteryGenerationJob.fail_job(job_id, reason)
 
           # Broadcast failure
           Phoenix.PubSub.broadcast(
@@ -101,7 +101,7 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
           error_msg = "Unexpected result from MysteryGenerationReactor: #{inspect(other)}"
           Logger.warning(error_msg, %{job_id: job_id})
 
-          Jobs.fail_job(job_id, error_msg)
+          MysteryGenerationJob.fail_job(job_id, error_msg)
 
           Phoenix.PubSub.broadcast(
             Area51.Data.PubSub,
@@ -126,7 +126,7 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
           error: error_msg
         })
 
-        Jobs.fail_job(job_id, error_msg)
+        MysteryGenerationJob.fail_job(job_id, error_msg)
 
         Phoenix.PubSub.broadcast(
           Area51.Data.PubSub,
