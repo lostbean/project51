@@ -29,6 +29,7 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 - **Understand library data structures**: Before working with external library data (e.g., Reactor), verify the actual structure (lists vs maps, field names)
 - **Handle argument structures correctly**: When working with step arguments, remember they are lists of `%Reactor.Argument{}` structs, not maps
 - **Use appropriate functions**: Use `length/1` for lists, `map_size/1` for maps - don't mix them up
+- **Check User struct fields**: User struct uses `external_id` field (from Auth0), not `id` - always use `user.external_id` for user identification
 
 ## Types
 
@@ -52,12 +53,28 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 - Use [Instructor](https://hexdocs.pm/instructor/Instructor.html) for get structured outputs from LLMs
 - Alawys use Ecto.Schema and use Instructor to defined the structured outputs
 
+# LiveState Usage
+
+- Use [LiveState](https://hexdocs.pm/live_state/) for real-time communication between frontend and backend
+- **LiveState channels work differently from regular Phoenix channels**:
+  - Prefer `{:noreply, state}` pattern if no follow livestate event is needed
+  - Use `handle_message/2` to receive PubSub messages, not `handle_info/2`
+  - Subscribe to PubSub topics in `init/3` for real-time updates
+- **Frontend integration**:
+  - Use "fire-and-forget" pattern: call `pushEvent()` without `await` for immediate UI response
+  - Don't expect responses from events - LiveState works through state updates
+  - Real-time updates come through state changes, not event responses
+- **Container pattern**:
+  - Create container components that manage LiveState socket creation
+  - Pass sockets as props to child components
+  - Follow existing patterns: `SessionListContainer`, `GameContainer`, etc.
+
 # React Usage
 
 - Pages are in assets/js/pages. Use default export for pages.
 - Components are in assets/js/components. Use named exports for components.
 - Utils are in assets/js/lib.
-- Use absolute paths for local imports using `@/`
+- Use relative imports (e.g., `../hooks/use-something`) rather than absolute paths with `@/` to avoid build issues
 - Always create the mobile version of the component along with the desktop version.
 - Use kebab-case for file names.
 - If the page or component uses a type for a resource from the database, like users or courses, create the type in the assets/js/types folder.
@@ -80,3 +97,25 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 - Use the `mix test && mix check` command after generating lots of changes to check the Elixir and React code for errors and code quality. If you encounter format errors, use `mix format` to fix them.
 - If any of my requests are not clear, ask me to clarify.
 - If you have better suggestions, feel free to suggest them.
+
+# Important Lessons Learned
+
+## LiveState vs Phoenix Channels
+- **Never mix LiveState patterns with regular Phoenix channel patterns**
+- LiveState channels require `{:noreply, state}` - using `{:reply, response, state}` causes `push_event/2` function errors
+- Frontend should use "fire-and-forget" for immediate UI feedback, with real-time updates via state changes
+
+## Real-time Architecture
+- Use PubSub for broadcasting updates between backend processes
+- Subscribe to PubSub in LiveState channel `init/3` for real-time updates
+- Enhanced Job context functions to broadcast status changes for seamless real-time experience
+
+## Frontend Build Configuration
+- Avoid complex alias configurations (`@/`) - use relative imports to prevent build issues
+- ESBuild plugins can be tricky to configure correctly - prefer simple, explicit paths
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
