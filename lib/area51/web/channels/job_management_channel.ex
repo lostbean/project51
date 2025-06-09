@@ -12,7 +12,7 @@ defmodule Area51.Web.JobManagementChannel do
 
   alias Area51.LLM.MysteryAgent
   alias Area51.Web.Auth.Guardian
-  alias Area51.Web.ChannelInit
+  alias Area51.Web.Channels.ChannelInit
 
   require Logger
   require OpenTelemetry.Tracer
@@ -23,14 +23,9 @@ defmodule Area51.Web.JobManagementChannel do
 
   @impl true
   def init(@channel_name, %{"token" => token}, socket) do
-    socket = ChannelInit.assign_channel_id(socket)
-    Logger.metadata(request_id: socket.assigns.channel_id)
+    initial_state = ChannelInit.init(socket)
 
-    OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{
-      attributes: [
-        {:channel_id, socket.assigns.channel_id}
-      ]
-    } do
+    OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{} do
       # Authenticate using JWT token
       Guardian.verify_and_get_user_info(token)
       |> case do
@@ -40,13 +35,14 @@ defmodule Area51.Web.JobManagementChannel do
           # Fetch current jobs for this user
           jobs = MysteryAgent.get_jobs_for_sidebar(user.external_id)
 
-          state = %{
-            running_jobs: jobs.running,
-            completed_jobs: jobs.completed,
-            user_id: user.external_id,
-            username: user.username,
-            error: nil
-          }
+          state =
+            initial_state
+            |> Map.put(:running_jobs, jobs.running)
+            |> Map.put(:completed_jobs, jobs.completed)
+            |> Map.put(:user_id, user.external_id)
+            |> Map.put(:username, user.username)
+            |> Map.put(:error, nil)
+            |> Map.delete(:otel_span_ctx)
 
           # Subscribe to job updates for this user
           Phoenix.PubSub.subscribe(Area51.Data.PubSub, "job_updates:#{user.external_id}")

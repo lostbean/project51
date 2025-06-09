@@ -43,10 +43,22 @@ defmodule Reactor.Middleware.Utils do
         reactor_name
 
       %{__reactor__: %{id: reactor_module}} when is_atom(reactor_module) ->
-        to_string(reactor_module)
+        extract_module_name(to_string(reactor_module))
 
       _ ->
         "unknown_reactor"
+    end
+  end
+
+  # Extract just the module name from fully qualified module string
+  # "Elixir.MyApp.TestReactor" -> "TestReactor"
+  defp extract_module_name(module_string) do
+    module_string
+    |> String.split(".")
+    |> List.last()
+    |> case do
+      nil -> module_string
+      name -> name
     end
   end
 

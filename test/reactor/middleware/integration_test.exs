@@ -189,7 +189,7 @@ defmodule Reactor.Middleware.IntegrationTest do
 
       # Verify telemetry events
       assert_receive {:telemetry_event, [:reactor, :start], _, metadata}
-      assert metadata.reactor_name == "Elixir.Reactor.Middleware.IntegrationTest.SuccessfulReactor"
+      assert metadata.reactor_name == "SuccessfulReactor"
 
       assert_receive {:telemetry_event, [:reactor, :step, :run, :start], _, metadata}
       assert metadata.step_name == :test_step
@@ -200,7 +200,7 @@ defmodule Reactor.Middleware.IntegrationTest do
       assert metadata.status == :success
 
       assert_receive {:telemetry_event, [:reactor, :stop], _, metadata}
-      assert metadata.reactor_name == "Elixir.Reactor.Middleware.IntegrationTest.SuccessfulReactor"
+      assert metadata.reactor_name == "SuccessfulReactor"
       assert metadata.status == :success
     end
 

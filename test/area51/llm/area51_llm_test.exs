@@ -144,7 +144,7 @@ defmodule Area51.LLMTest do
 
     test "handles Reactor error" do
       # Mock Reactor.run to return an error
-      Mimic.stub(Reactor, :run, fn _reactor, _inputs ->
+      Mimic.stub(Reactor, :run, fn _reactor, _inputs, _opts ->
         {:error, "Reactor execution failed"}
       end)
 
@@ -155,7 +155,7 @@ defmodule Area51.LLMTest do
 
     test "handles unexpected Reactor result" do
       # Mock Reactor.run to return an unexpected result
-      Mimic.stub(Reactor, :run, fn _reactor, _inputs ->
+      Mimic.stub(Reactor, :run, fn _reactor, _inputs, _opts ->
         {:ok, "unexpected result"}
       end)
 
@@ -166,7 +166,7 @@ defmodule Area51.LLMTest do
 
     test "handles exceptions during generation" do
       # Mock Reactor.run to raise an exception
-      Mimic.stub(Reactor, :run, fn _reactor, _inputs ->
+      Mimic.stub(Reactor, :run, fn _reactor, _inputs, _opts ->
         raise "Something went wrong"
       end)
 

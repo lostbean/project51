@@ -109,10 +109,16 @@ defmodule Reactor.Middleware.OpenTelemetryMiddlewareTest do
     test "handles halt when enabled" do
       Application.put_env(:area51, OpenTelemetryMiddleware, enabled: true)
 
-      context = %{otel_start_time: System.monotonic_time()}
+      context = %{
+        otel_start_time: System.monotonic_time(),
+        otel_span_ctx: :mock_span_ctx,
+        otel_ctx: :mock_ctx
+      }
 
       assert {:ok, updated_context} = OpenTelemetryMiddleware.halt(context)
-      assert Map.has_key?(updated_context, :otel_cleaned)
+      assert !Map.has_key?(updated_context, :otel_ctx)
+      assert !Map.has_key?(updated_context, :otel_span_ctx)
+      assert !Map.has_key?(updated_context, :otel_start_time)
     end
 
     test "passes through when disabled" do
@@ -121,30 +127,6 @@ defmodule Reactor.Middleware.OpenTelemetryMiddlewareTest do
       context = %{}
 
       assert {:ok, ^context} = OpenTelemetryMiddleware.halt(context)
-    end
-  end
-
-  describe "process context" do
-    test "get_process_context returns context when enabled" do
-      Application.put_env(:area51, OpenTelemetryMiddleware, enabled: true)
-
-      context = OpenTelemetryMiddleware.get_process_context()
-      assert is_map(context) or is_nil(context)
-    end
-
-    test "get_process_context returns nil when disabled" do
-      Application.put_env(:area51, OpenTelemetryMiddleware, enabled: false)
-
-      assert is_nil(OpenTelemetryMiddleware.get_process_context())
-    end
-
-    test "set_process_context handles nil gracefully" do
-      assert :ok = OpenTelemetryMiddleware.set_process_context(nil)
-    end
-
-    test "set_process_context handles valid context" do
-      context = %{otel_context: :test, span_context: :test}
-      assert :ok = OpenTelemetryMiddleware.set_process_context(context)
     end
   end
 

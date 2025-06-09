@@ -17,7 +17,7 @@ defmodule Area51.Web.InvestigationChannel do
   alias Area51.Data.PlayerContribution
   alias Area51.LLM.Agent
   alias Area51.Web.Auth.Guardian
-  alias Area51.Web.ChannelInit
+  alias Area51.Web.Channels.ChannelInit
 
   require OpenTelemetry.Tracer
 
@@ -32,13 +32,10 @@ defmodule Area51.Web.InvestigationChannel do
   @impl true
   def init(@channel_name <> ":" <> session_id_str, %{"token" => token}, socket) do
     session_id = parse_session_id!(session_id_str)
-
-    socket = ChannelInit.assign_channel_id(socket)
-    Logger.metadata(request_id: socket.assigns.channel_id)
+    initial_state = ChannelInit.init(socket)
 
     OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{
       attributes: [
-        {:channel_id, socket.assigns.channel_id},
         {:session_id, session_id}
       ]
     } do
@@ -48,16 +45,18 @@ defmodule Area51.Web.InvestigationChannel do
           :logger.info("User '#{user.username}' has authenticated into channel #{__MODULE__}")
 
           # Check if we need to generate a new mystery or use an existing one
-          game_session = fetch_or_initialize_game_session(session_id)
+          game_session =
+            fetch_or_initialize_game_session(session_id, initial_state.otel_span_ctx)
 
           # Get any existing clues for this game session
           clues = Clue.get_clues_for_session(session_id)
 
-          state = %{
-            username: user.username,
-            game_session: GameSession.data_to_core(game_session),
-            clues: clues |> Enum.map(&Clue.data_to_core/1)
-          }
+          state =
+            initial_state
+            |> Map.put(:username, user.username)
+            |> Map.put(:game_session, GameSession.data_to_core(game_session))
+            |> Map.put(:clues, Enum.map(clues, &Clue.data_to_core/1))
+            |> Map.delete(:otel_span_ctx)
 
           {:ok, state, assign(socket, username: user.username)}
 
@@ -79,11 +78,11 @@ defmodule Area51.Web.InvestigationChannel do
     end
   end
 
-  defp fetch_or_initialize_game_session(session_id) do
+  defp fetch_or_initialize_game_session(session_id, otel_span_ctx) do
     case GameSession.get_game_session(session_id) do
       nil ->
         # Generate a new mystery
-        case Agent.generate_mystery() do
+        case Agent.generate_mystery(otel_span_ctx: otel_span_ctx) do
           {:ok, mystery_data} ->
             # Create session with the mystery data
             GameSession.fetch_or_create_new_game_session(

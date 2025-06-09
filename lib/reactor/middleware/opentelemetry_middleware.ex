@@ -53,20 +53,39 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
             reactor_name = Utils.get_reactor_name(context)
             start_time = System.monotonic_time()
 
-            span_name = "reactor.run"
-            span_attributes = build_reactor_attributes(reactor_name, context)
+            # Check if external OpenTelemetry context is provided
+            {ctx, span_ctx} =
+              case context do
+                %{otel_ctx: external_ctx, otel_span_ctx: external_span} ->
+                  # Use external context as parent
+                  OpenTelemetry.Ctx.attach(external_ctx)
+                  OpenTelemetry.Tracer.set_current_span(external_span)
 
-            Tracer.with_span span_name, %{attributes: span_attributes} do
-              span_ctx = Tracer.current_span_ctx()
+                  span_name = "reactor.#{reactor_name}.run"
+                  span_attributes = build_reactor_attributes(reactor_name, context)
+                  child_span = Tracer.start_span(span_name, %{attributes: span_attributes})
+                  current_ctx = OpenTelemetry.Ctx.get_current()
 
-              updated_context =
-                context
-                |> Map.put(:otel_span_ctx, span_ctx)
-                |> Map.put(:otel_start_time, start_time)
-                |> Map.put(:reactor_name, reactor_name)
+                  {current_ctx, child_span}
 
-              {:ok, updated_context}
-            end
+                _ ->
+                  # Create root span
+                  span_name = "reactor.#{reactor_name}.run"
+                  span_attributes = build_reactor_attributes(reactor_name, context)
+                  span_ctx = Tracer.start_span(span_name, %{attributes: span_attributes})
+                  ctx = OpenTelemetry.Ctx.get_current()
+
+                  {ctx, span_ctx}
+              end
+
+            updated_context =
+              context
+              |> Map.put(:otel_ctx, ctx)
+              |> Map.put(:otel_span_ctx, span_ctx)
+              |> Map.put(:otel_start_time, start_time)
+              |> Map.put(:reactor_name, reactor_name)
+
+            {:ok, updated_context}
 
           false ->
             {:ok, context}
@@ -77,82 +96,13 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
   end
 
   @impl true
-  def event(event_type, step, context) do
-    Utils.safe_execute(
-      fn -> handle_otel_event_if_enabled(event_type, step, context) end,
-      :ok
-    )
-  end
-
-  defp handle_otel_event_if_enabled(event_type, step, context) do
-    case Utils.get_config(__MODULE__, :enabled, false) do
-      true -> process_otel_event_type(event_type, step, context)
-      false -> :ok
-    end
-  end
-
-  defp process_otel_event_type(event_type, step, context) do
-    case event_type do
-      type when is_atom(type) -> handle_step_event(type, step, context, nil)
-      {type, args} when is_atom(type) -> handle_step_event(type, step, context, args)
-      _ -> Logger.warning("#{__MODULE__} received an unexpected event_type")
-    end
-
-    :ok
-  end
-
-  @impl true
-  def get_process_context do
-    Utils.safe_execute(
-      fn ->
-        case Utils.get_config(__MODULE__, :enabled, false) do
-          true ->
-            ctx = OpenTelemetry.Ctx.get_current()
-            span_ctx = Tracer.current_span_ctx()
-
-            %{
-              otel_context: ctx,
-              span_context: span_ctx,
-              process_info: %{
-                pid: self(),
-                node: node()
-              }
-            }
-
-          false ->
-            nil
-        end
-      end,
-      nil
-    )
-  end
-
-  @impl true
-  def set_process_context(nil), do: :ok
-
-  def set_process_context(context) do
-    Utils.safe_execute(
-      fn ->
-        case context do
-          %{otel_context: ctx, span_context: span_ctx} ->
-            OpenTelemetry.Ctx.attach(ctx)
-            Tracer.set_current_span(span_ctx)
-            :ok
-
-          _ ->
-            :ok
-        end
-      end,
-      :ok
-    )
-  end
-
-  @impl true
   def complete(result, context) do
     Utils.safe_execute(
       fn ->
-        case Utils.get_config(__MODULE__, :enabled, false) do
-          true ->
+        case context do
+          %{otel_span_ctx: span_ctx, otel_ctx: ctx} ->
+            OpenTelemetry.Ctx.attach(ctx)
+            OpenTelemetry.Tracer.set_current_span(span_ctx)
             duration = Utils.calculate_duration(context, :otel_start_time)
 
             Tracer.set_attributes([
@@ -161,9 +111,12 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
               {:"reactor.duration_ms", duration}
             ])
 
+            Tracer.set_status(:ok, "success")
+            OpenTelemetry.Tracer.end_span(span_ctx)
+
             {:ok, result}
 
-          false ->
+          _ ->
             {:ok, result}
         end
       end,
@@ -175,8 +128,10 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
   def error(error, context) do
     Utils.safe_execute(
       fn ->
-        case Utils.get_config(__MODULE__, :enabled, false) do
-          true ->
+        case context do
+          %{otel_span_ctx: span_ctx, otel_ctx: ctx} ->
+            OpenTelemetry.Ctx.attach(ctx)
+            OpenTelemetry.Tracer.set_current_span(span_ctx)
             duration = Utils.calculate_duration(context, :otel_start_time)
 
             error_info = Utils.build_error_info(error, __MODULE__)
@@ -189,9 +144,11 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
             ])
 
             Tracer.set_status(:error, error_info.message)
+            OpenTelemetry.Tracer.end_span(span_ctx)
+
             {:error, error}
 
-          false ->
+          _ ->
             {:error, error}
         end
       end,
@@ -203,8 +160,10 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
   def halt(context) do
     Utils.safe_execute(
       fn ->
-        case Utils.get_config(__MODULE__, :enabled, false) do
-          true ->
+        case context do
+          %{otel_span_ctx: span_ctx, otel_ctx: ctx} ->
+            OpenTelemetry.Ctx.attach(ctx)
+            OpenTelemetry.Tracer.set_current_span(span_ctx)
             duration = Utils.calculate_duration(context, :otel_start_time)
 
             Tracer.set_attributes([
@@ -212,31 +171,95 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
               {:"reactor.duration_ms", duration}
             ])
 
-            cleanup_spans()
-            {:ok, Map.put(context, :otel_cleaned, true)}
+            Tracer.set_status(:ok, "halted")
+            OpenTelemetry.Tracer.end_span(span_ctx)
+
+            # clean up any non-reactor-managed resources or modify the context for later re-use by a future init/1 callback.
+            updated_context =
+              context
+              |> Map.delete(:otel_ctx)
+              |> Map.delete(:otel_span_ctx)
+              |> Map.delete(:otel_start_time)
+
+            {:ok, updated_context}
 
           false ->
-            {:ok, context}
+            updated_context =
+              context
+              |> Map.delete(:otel_ctx)
+              |> Map.delete(:otel_span_ctx)
+              |> Map.delete(:otel_start_time)
+
+            {:ok, updated_context}
         end
       end,
       {:ok, context}
     )
   end
 
+  @impl true
+  def event(event_type, step, context) do
+    Utils.safe_execute(
+      fn ->
+        case Utils.get_config(__MODULE__, :enabled, false) do
+          true -> process_otel_event_type(event_type, step, context)
+          false -> :ok
+        end
+      end,
+      :ok
+    )
+  end
+
   # Private functions
+  defp process_otel_event_type(event_type, step, context) do
+    case event_type do
+      type when is_atom(type) -> handle_step_event(type, step, context, nil)
+      {type, args} when is_atom(type) -> handle_step_event(type, step, context, args)
+      _ -> Logger.warning("#{__MODULE__} received an unexpected event_type")
+    end
+
+    :ok
+  end
 
   defp handle_step_event(event_type, %Reactor.Step{} = step, context, args) do
     cond do
       event_type in @start_events -> handle_start_event(event_type, step, context)
       event_type in @end_events -> handle_end_event(event_type, step, context)
       event_type in @error_events -> handle_error_event(event_type, step, context, args)
-      true -> handle_legacy_event(event_type, step, context, args)
+    end
+  end
+
+  defp map_to_event_kind(event_type) do
+    case event_type do
+      :process_start -> :process
+      :process_terminate -> :process
+      # run setps
+      :run_start -> :run
+      :run_complete -> :run
+      :run_retry -> :run
+      :run_halt -> :run
+      # compensate setps
+      :compensate_start -> :compensate
+      :compensate_complete -> :compensate
+      :compensate_retry -> :compensate
+      # undo setps
+      :undo_start -> :undo
+      :undo_complete -> :undo
+      :undo_retry -> :undo
     end
   end
 
   defp handle_start_event(event_type, step, context) do
-    Utils.store_step_start_time(step.name)
-    create_span_for_event(event_type, step, context)
+    event_kind = map_to_event_kind(event_type)
+
+    start_time = System.monotonic_time()
+    Process.put({__MODULE__, :step_start_time, step.name, event_kind}, start_time)
+
+    ctx = OpenTelemetry.Ctx.get_current()
+    Process.put({__MODULE__, :step_ctx, step.name, event_kind}, ctx)
+
+    step_span = create_span_for_event(event_type, step, context)
+    Process.put({__MODULE__, :step_span_ctx, step.name, event_kind}, step_span)
   end
 
   defp handle_end_event(event_type, step, context) do
@@ -246,38 +269,6 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
   defp handle_error_event(event_type, step, context, args) do
     error = extract_error_from_args(args)
     complete_span_for_event(event_type, step, context, :error, error)
-  end
-
-  defp handle_legacy_event(event_type, step, context, args) do
-    case event_type do
-      :run_start ->
-        Utils.store_step_start_time(step.name)
-        create_step_span(step, context)
-
-      :run_complete ->
-        complete_step_span(step, context, :success, nil)
-
-      :run_error ->
-        error = extract_error_from_args(args)
-        complete_step_span(step, context, :error, error)
-
-      :compensate_start ->
-        Utils.store_step_start_time(step.name)
-        create_compensation_span(step, context)
-
-      :compensate_complete ->
-        complete_compensation_span(step, context)
-
-      :undo_start ->
-        Utils.store_step_start_time(step.name)
-        create_undo_span(step, context)
-
-      :undo_complete ->
-        complete_undo_span(step, context)
-
-      _ ->
-        :ok
-    end
   end
 
   # Extract error information from event arguments
@@ -291,46 +282,49 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
 
   # Create appropriate span based on event type
   defp create_span_for_event(event_type, step, context) do
-    case event_type do
-      :run_start -> create_step_span(step, context)
-      :compensate_start -> create_compensation_span(step, context)
-      :undo_start -> create_undo_span(step, context)
-      :process_start -> create_process_span(step, context)
-      _ -> :ok
-    end
-  end
+    span_name =
+      case event_type do
+        :run_start -> "step.#{step.name}.run"
+        :compensate_start -> "step.#{step.name}.compensate"
+        :undo_start -> "step.#{step.name}.undo"
+        :process_start -> "step.#{step.name}.process"
+        event_type -> "step.#{step.name}." <> to_string(event_type)
+      end
 
-  # Complete appropriate span based on event type
-  defp complete_span_for_event(event_type, step, context, status, error) do
-    case event_type do
-      event when event in [:run_complete, :run_halt] ->
-        complete_step_span(step, context, status, error)
+    span_attributes =
+      build_step_attributes(step, context)
 
-      event when event in [:compensate_complete] ->
-        complete_compensation_span(step, context)
-
-      event when event in [:undo_complete] ->
-        complete_undo_span(step, context)
-
-      event when event in [:process_terminate] ->
-        complete_process_span(step, context, status)
+    # Set parent context before creating child span for proper hierarchy
+    case context do
+      %{otel_span_ctx: parent, otel_ctx: parent_ctx} ->
+        OpenTelemetry.Ctx.attach(parent_ctx)
+        OpenTelemetry.Tracer.set_current_span(parent)
 
       _ ->
         :ok
     end
-  end
-
-  defp create_step_span(%Reactor.Step{} = step, context) do
-    span_name = "reactor.step.run"
-    span_attributes = build_step_attributes(step, context)
 
     Tracer.start_span(span_name, %{attributes: span_attributes})
   end
 
-  defp complete_step_span(%Reactor.Step{} = step, context, status, error) do
-    step_duration = Utils.calculate_step_duration(step, context)
+  # Complete appropriate span based on event type
+  defp complete_span_for_event(event_type, %Reactor.Step{} = step, _context, status, error) do
+    event_kind = map_to_event_kind(event_type)
+
+    start_time = Process.delete({__MODULE__, :step_start_time, step.name, event_kind})
+
+    end_time = System.monotonic_time()
+    step_duration = end_time - start_time
+
+    ctx = Process.delete({__MODULE__, :step_ctx, step.name, event_kind})
+    OpenTelemetry.Ctx.attach(ctx)
+
+    span_ctx = Process.delete({__MODULE__, :step_span_ctx, step.name, event_kind})
+
+    OpenTelemetry.Tracer.set_current_span(span_ctx)
 
     base_attributes = [
+      {:"step.event_type", to_string(event_type)},
       {:"step.status", to_string(status)},
       {:"step.duration_ms", step_duration}
     ]
@@ -369,61 +363,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
         Tracer.set_attributes(attributes)
     end
 
-    Tracer.end_span()
-  end
-
-  defp create_compensation_span(%Reactor.Step{} = step, _context) do
-    span_name = "reactor.step.compensate"
-    span_attributes = [{:"step.name", step.name}, {:"step.operation", "compensate"}]
-
-    Tracer.start_span(span_name, %{attributes: span_attributes})
-  end
-
-  defp complete_compensation_span(%Reactor.Step{} = step, context) do
-    step_duration = Utils.calculate_step_duration(step, context)
-
-    Tracer.set_attributes([
-      {:"step.compensation.status", "complete"},
-      {:"step.duration_ms", step_duration}
-    ])
-
-    Tracer.end_span()
-  end
-
-  defp create_undo_span(%Reactor.Step{} = step, _context) do
-    span_name = "reactor.step.undo"
-    span_attributes = [{:"step.name", step.name}, {:"step.operation", "undo"}]
-
-    Tracer.start_span(span_name, %{attributes: span_attributes})
-  end
-
-  defp complete_undo_span(%Reactor.Step{} = step, context) do
-    step_duration = Utils.calculate_step_duration(step, context)
-
-    Tracer.set_attributes([
-      {:"step.undo.status", "complete"},
-      {:"step.duration_ms", step_duration}
-    ])
-
-    Tracer.end_span()
-  end
-
-  defp create_process_span(%Reactor.Step{} = step, _context) do
-    span_name = "reactor.process.start"
-    span_attributes = [{:"step.name", step.name}, {:"step.operation", "process"}]
-
-    Tracer.start_span(span_name, %{attributes: span_attributes})
-  end
-
-  defp complete_process_span(%Reactor.Step{} = step, context, status) do
-    step_duration = Utils.calculate_step_duration(step, context)
-
-    Tracer.set_attributes([
-      {:"process.status", to_string(status)},
-      {:"step.duration_ms", step_duration}
-    ])
-
-    Tracer.end_span()
+    Tracer.end_span(span_ctx)
   end
 
   defp build_reactor_attributes(reactor_name, context) do
@@ -432,7 +372,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
       {:"reactor.start_time", System.system_time(:millisecond)}
     ]
 
-    config_attrs = get_config(:span_attributes, [])
+    config_attrs = Utils.get_config(__MODULE__, :span_attributes, [])
     context_attrs = extract_context_attributes(context)
 
     base_attrs ++ config_attrs ++ context_attrs
@@ -447,7 +387,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
     ]
 
     argument_attrs =
-      case get_config(:include_arguments, false) do
+      case Utils.get_config(__MODULE__, :include_arguments, false) do
         true -> [{:"step.arguments", format_step_arguments(step.arguments)}]
         false -> []
       end
@@ -471,18 +411,5 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
     context
     |> Map.take([:correlation_id, :user_id, :session_id])
     |> Enum.map(fn {key, value} -> {:"context.#{key}", value} end)
-  end
-
-  defp cleanup_spans do
-    case Tracer.current_span_ctx() do
-      :undefined -> :ok
-      _span_ctx -> Tracer.end_span()
-    end
-  end
-
-  defp get_config(key, default) do
-    :area51
-    |> Application.get_env(__MODULE__, [])
-    |> Keyword.get(key, default)
   end
 end

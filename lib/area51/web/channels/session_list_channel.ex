@@ -12,8 +12,9 @@ defmodule Area51.Web.SessionListChannel do
   use LiveState.Channel, web_module: Area51.Web
 
   alias Area51.Data.GameSession
+  alias Area51.LLM.Agent
   alias Area51.Web.Auth.Guardian
-  alias Area51.Web.ChannelInit
+  alias Area51.Web.Channels.ChannelInit
 
   require OpenTelemetry.Tracer
 
@@ -23,14 +24,9 @@ defmodule Area51.Web.SessionListChannel do
 
   @impl true
   def init(@channel_name, %{"token" => token}, socket) do
-    socket = ChannelInit.assign_channel_id(socket)
-    Logger.metadata(request_id: socket.assigns.channel_id)
+    initial_state = ChannelInit.init(socket)
 
-    OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{
-      attributes: [
-        {:channel_id, socket.assigns.channel_id}
-      ]
-    } do
+    OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{} do
       # Authenticate using JWT token
       Guardian.verify_and_get_user_info(token)
       |> case do
@@ -43,11 +39,12 @@ defmodule Area51.Web.SessionListChannel do
           # Fetch the list of available sessions
           sessions = GameSession.list_sessions_for_ui()
 
-          state = %{
-            sessions: sessions,
-            username: user.username,
-            error: nil
-          }
+          state =
+            initial_state
+            |> Map.put(:sessions, sessions)
+            |> Map.put(:username, user.username)
+            |> Map.put(:error, nil)
+            |> Map.delete(:otel_span_ctx)
 
           {:ok, state, assign(socket, username: user.username)}
 
@@ -59,6 +56,23 @@ defmodule Area51.Web.SessionListChannel do
   end
 
   @impl true
+  def handle_event("refresh_sessions", _payload, state) do
+    updated_sessions = GameSession.list_sessions_for_ui()
+    {:noreply, %{state | sessions: updated_sessions}}
+  end
+
+  def handle_event("create_session", %{"topic" => topic}, state) do
+    case Agent.generate_mystery_with_topic(topic) do
+      {:ok, mystery_data} ->
+        GameSession.create_game_session(mystery_data)
+        updated_sessions = GameSession.list_sessions_for_ui()
+        {:noreply, %{state | sessions: updated_sessions, error: nil}}
+
+      {:error, _reason} ->
+        {:noreply, %{state | error: "Failed to create new session"}}
+    end
+  end
+
   def handle_event(unmatched_event, unmatched_event_payload, state) do
     :logger.warning(
       "received an unmatched event: '#{unmatched_event}' with payload '#{inspect(unmatched_event_payload)}'"

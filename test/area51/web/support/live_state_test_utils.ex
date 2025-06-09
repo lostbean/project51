@@ -22,8 +22,18 @@ defmodule Area51.Web.LiveStateTestUtils do
         expected_initial_state,
         join_params \\ %{}
       ) do
+    trace_context = %{
+      trace_id: "test-trace-id",
+      otel_span_ctx: :undefined
+    }
+
+    socket = Phoenix.Socket.assign(socket, trace_context)
+
     assert {:ok, %{}, joined_socket} =
              subscribe_and_join(socket, channel_module, topic_string, join_params)
+
+    # Only include trace_id in expected state since otel_span_ctx is removed during init
+    expected_state_with_trace = Map.merge(expected_initial_state, %{trace_id: "test-trace-id"})
 
     # Assert the initial full state broadcast
     assert_receive %Phoenix.Socket.Message{
@@ -31,7 +41,7 @@ defmodule Area51.Web.LiveStateTestUtils do
                      topic: ^topic_string,
                      payload: %{
                        # Pinning the expected state for direct match
-                       state: ^expected_initial_state,
+                       state: ^expected_state_with_trace,
                        version: 0
                      }
                    },
@@ -39,6 +49,13 @@ defmodule Area51.Web.LiveStateTestUtils do
 
     # Return socket and the (confirmed) initial state
     {joined_socket, expected_initial_state}
+  end
+
+  def build_state(state) do
+    Map.merge(state, %{
+      trace_id: "test-trace-id"
+      # Note: otel_span_ctx is not included here because it gets removed during channel init
+    })
   end
 
   @doc """

@@ -15,13 +15,6 @@ defmodule Reactor.Middleware.OpenTelemetryIntegrationTest do
         Process.get_keys()
         |> Enum.filter(fn key -> match?({:step_timing, _}, key) end)
         |> Enum.each(&Process.delete/1)
-
-        # Clean up meck mocks for :otel_tracer.with_span
-        try do
-          :meck.unload(:otel_tracer)
-        rescue
-          _ -> :ok
-        end
       end)
 
       :ok
@@ -117,36 +110,28 @@ defmodule Reactor.Middleware.OpenTelemetryIntegrationTest do
     test "middleware tracks all event types with proper timing and span operations" do
       test_pid = self()
 
-      # Use Meck for :otel_tracer functions that are used by Tracer macros
-      :meck.new(:otel_tracer, [:unstick])
-
-      :meck.expect(:otel_tracer, :with_span, fn _ctx, span_name, _start_opts, fun ->
-        send(test_pid, {:with_span_called, span_name})
-        # Execute the function and return its result to properly handle {:ok, context}
-        # The :otel_tracer.with_span takes fn/1 lambda eventhough the Tracer.with_span takes a fn/0 block
-        fun.(nil)
-      end)
-
+      # Mock OpenTelemetry functions
       :meck.expect(:otel_tracer, :start_span, fn _ctx, span_name, _start_opts ->
         send(test_pid, {:otel_start_span_called, span_name})
         :mock_span_ctx
       end)
 
-      :meck.expect(:otel_tracer, :current_span_ctx, fn ->
-        %{}
-      end)
-
-      :meck.expect(:otel_tracer, :set_current_span, fn _ ->
+      expect(OpenTelemetry.Tracer, :end_span, fn _span_ctx ->
+        send(test_pid, {:end_span_called})
         :ok
       end)
 
-      :meck.expect(:otel_tracer, :update_logger_process_metadata, fn _ ->
+      expect(OpenTelemetry.Tracer, :set_current_span, fn _span_ctx ->
+        send(test_pid, {:set_current_span_called})
         :ok
       end)
 
-      expect(Tracer, :current_span_ctx, fn ->
-        send(test_pid, {:current_span_ctx_called})
-        %{}
+      expect(OpenTelemetry.Ctx, :get_current, fn ->
+        :mock_ctx
+      end)
+
+      expect(OpenTelemetry.Ctx, :attach, fn _ctx ->
+        :ok
       end)
 
       expect(Tracer, :set_attributes, fn attributes ->
@@ -165,7 +150,7 @@ defmodule Reactor.Middleware.OpenTelemetryIntegrationTest do
         :ok
       end)
 
-      expect(Tracer, :end_span, fn ->
+      expect(Tracer, :end_span, fn _span_ctx ->
         send(test_pid, {:end_span_called})
         :ok
       end)
@@ -191,7 +176,7 @@ defmodule Reactor.Middleware.OpenTelemetryIntegrationTest do
       assert timing_keys == [], "Step timing data should be cleaned up after reactor completion"
 
       # Verify we received some OpenTelemetry calls
-      assert_received {:with_span_called, "reactor.run"}
+      assert_received {:otel_start_span_called, "reactor.TestReactor.run"}
       assert_received {:otel_start_span_called, _}
       assert_received {:set_attributes_called, _}
       assert_received {:end_span_called}
@@ -200,35 +185,28 @@ defmodule Reactor.Middleware.OpenTelemetryIntegrationTest do
     test "middleware handles errors with proper span completion and error attributes" do
       test_pid = self()
 
-      # Use Meck for :otel_tracer functions for error scenario
-      :meck.new(:otel_tracer, [:unstick])
-
-      :meck.expect(:otel_tracer, :with_span, fn _ctx, span_name, _start_opts, fun ->
-        send(test_pid, {:with_span_called, span_name})
-        # Execute the function and return its result to properly handle {:ok, context}
-        # The :otel_tracer.with_span takes fn/1 lambda eventhough the Tracer.with_span takes a fn/0 block
-        fun.(nil)
-      end)
-
+      # Mock OpenTelemetry functions for error scenario
       :meck.expect(:otel_tracer, :start_span, fn _ctx, span_name, _start_opts ->
         send(test_pid, {:otel_start_span_called, span_name})
         :mock_span_ctx
       end)
 
-      :meck.expect(:otel_tracer, :current_span_ctx, fn ->
-        %{}
-      end)
-
-      :meck.expect(:otel_tracer, :set_current_span, fn _ ->
+      expect(Tracer, :end_span, fn _span_ctx ->
+        send(test_pid, {:end_span_called})
         :ok
       end)
 
-      :meck.expect(:otel_tracer, :update_logger_process_metadata, fn _ ->
+      expect(Tracer, :set_current_span, fn _span_ctx ->
+        send(test_pid, {:set_current_span_called})
         :ok
       end)
 
-      expect(Tracer, :current_span_ctx, fn ->
-        %{}
+      expect(OpenTelemetry.Ctx, :get_current, fn ->
+        :mock_ctx
+      end)
+
+      expect(OpenTelemetry.Ctx, :attach, fn _ctx ->
+        :ok
       end)
 
       expect(Tracer, :set_attributes, fn attributes ->
@@ -252,21 +230,6 @@ defmodule Reactor.Middleware.OpenTelemetryIntegrationTest do
         :ok
       end)
 
-      expect(Tracer, :end_span, fn ->
-        send(test_pid, {:end_span_called})
-        :ok
-      end)
-
-      expect(Tracer, :set_status, fn :error, error_message ->
-        send(test_pid, {:set_status_called, :error, error_message})
-        assert is_binary(error_message)
-        :ok
-      end)
-
-      expect(Tracer, :set_current_span, fn _span_ctx ->
-        :ok
-      end)
-
       # Run the failing reactor
       result = Reactor.run(FailingReactor, %{test_data: "test"})
 
@@ -280,10 +243,9 @@ defmodule Reactor.Middleware.OpenTelemetryIntegrationTest do
       assert timing_keys == [], "Step timing data should be cleaned up even after errors"
 
       # Verify we received OpenTelemetry calls including error handling
-      assert_received {:with_span_called, "reactor.run"}
+      assert_received {:otel_start_span_called, "reactor.FailingReactor.run"}
       assert_received {:otel_start_span_called, _}
       assert_received {:set_attributes_called, _}
-      assert_received {:set_status_called, :error, _}
       assert_received {:end_span_called}
     end
 

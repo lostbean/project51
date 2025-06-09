@@ -26,21 +26,40 @@ defmodule Area51.LLM.MysteryAgent do
   @doc """
   Generate a new mystery for an Area 51 investigation
   """
-  def generate_mystery do
-    generate_mystery(nil)
+  def generate_mystery() do
+    generate_mystery(nil, [])
+  end
+
+  def generate_mystery(topic) when is_binary(topic) or is_nil(topic) do
+    generate_mystery(topic, [])
+  end
+
+  def generate_mystery(opts) when is_list(opts) do
+    generate_mystery(nil, opts)
   end
 
   @doc """
-  Generate a new mystery for an Area 51 investigation with a specific topic
+  Generate a new mystery for an Area 51 investigation with a specific topic and options
   """
-  def generate_mystery(topic) do
+  def generate_mystery(topic, opts) when is_list(opts) do
     # If topic is provided, use it as the mystery type, otherwise select random type
     theme = if is_nil(topic) or topic == "", do: Enum.random(@mystery_types), else: topic
 
     # Use a default difficulty for backward compatibility
     difficulty = "medium"
 
-    case Reactor.run(MysteryGenerationReactor, %{theme: theme, difficulty: difficulty}) do
+    reactor_opts =
+      if Keyword.has_key?(opts, :otel_span_ctx) do
+        [otel_span_ctx: Keyword.get(opts, :otel_span_ctx)]
+      else
+        []
+      end
+
+    case Reactor.run(
+           MysteryGenerationReactor,
+           %{theme: theme, difficulty: difficulty},
+           reactor_opts
+         ) do
       {:ok, %Mystery{} = mystery} ->
         # Transform the Mystery struct to match the expected return format for backward compatibility
         {:ok,
@@ -69,8 +88,8 @@ defmodule Area51.LLM.MysteryAgent do
 
   This function is kept for backward compatibility and delegates to generate_mystery/1
   """
-  def generate_mystery_with_topic(topic) do
-    generate_mystery(topic)
+  def generate_mystery_with_topic(topic, opts \\ []) do
+    generate_mystery(topic, opts)
   end
 
   @doc """

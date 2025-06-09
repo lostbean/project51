@@ -15,8 +15,8 @@ defmodule Area51.LLM.Agent do
   @doc """
   Generate a new mystery for an Area 51 investigation
   """
-  def generate_mystery do
-    MysteryAgent.generate_mystery()
+  def generate_mystery(opts \\ []) do
+    MysteryAgent.generate_mystery(opts)
   end
 
   @doc """
