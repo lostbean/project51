@@ -32,13 +32,16 @@ defmodule Area51.Web.InvestigationChannel do
   @impl true
   def init(@channel_name <> ":" <> session_id_str, %{"token" => token}, socket) do
     session_id = parse_session_id!(session_id_str)
-    initial_state = ChannelInit.init(socket)
 
-    OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{
+    # Create a span for the lifetime of the channel, and pass alnog in the socket. The terminate/1 will the span
+    OpenTelemetry.Tracer.set_current_span(socket.assigns[:otel_span_ctx])
+    span_ctx = OpenTelemetry.Tracer.start_span("live-state.#{@channel_name}")
+    socket = socket |> assign(otel_span_ctx: span_ctx)
+
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.init",
       attributes: [
         {:session_id, session_id}
-      ]
-    } do
+      ] do
       Guardian.verify_and_get_user_info(token)
       |> case do
         {:ok, user} ->
@@ -46,22 +49,26 @@ defmodule Area51.Web.InvestigationChannel do
 
           # Check if we need to generate a new mystery or use an existing one
           game_session =
-            fetch_or_initialize_game_session(session_id, initial_state.otel_span_ctx)
+            fetch_or_initialize_game_session(session_id, span_ctx)
 
           # Get any existing clues for this game session
           clues = Clue.get_clues_for_session(session_id)
 
-          state =
-            initial_state
-            |> Map.put(:username, user.username)
-            |> Map.put(:game_session, GameSession.data_to_core(game_session))
-            |> Map.put(:clues, Enum.map(clues, &Clue.data_to_core/1))
-            |> Map.delete(:otel_span_ctx)
+          state = %{
+            username: user.username,
+            game_session: GameSession.data_to_core(game_session),
+            clues: Enum.map(clues, &Clue.data_to_core/1)
+          }
 
-          {:ok, state, assign(socket, username: user.username)}
+          socket_with_assigns =
+            socket
+            |> assign(username: user.username)
+
+          {:ok, state, socket_with_assigns}
 
         {:error, reason} ->
           :logger.warning("WebSocket auth failed: #{inspect(reason)}")
+          OpenTelemetry.Span.end_span(span_ctx)
           :error
       end
     end
@@ -112,12 +119,11 @@ defmodule Area51.Web.InvestigationChannel do
   end
 
   @impl true
-  def handle_event("new_input" = event, %{"input" => input}, state) do
-    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
+  def handle_event("new_input" = event, %{"input" => input}, state, socket) do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}",
       attributes: [
         {:event, event}
-      ]
-    } do
+      ] do
       username = state.username
       game_session = state.game_session
 
@@ -152,9 +158,15 @@ defmodule Area51.Web.InvestigationChannel do
   end
 
   @impl true
-  def handle_event(unmatched_event, unmatched_event_payload, _) do
+  def handle_event(unmatched_event, unmatched_event_payload, _state, _socket) do
     :logger.warning(
       "received an unmatched event: '#{unmatched_event}' with payload '#{inspect(unmatched_event_payload)}'"
     )
+  end
+
+  @impl Phoenix.Channel
+  def terminate(_reason, socket) do
+    OpenTelemetry.Span.end_span(socket.assigns.otel_span_ctx)
+    :ok
   end
 end

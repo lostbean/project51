@@ -14,7 +14,7 @@ defmodule Area51.Web.SessionListChannel do
   alias Area51.Data.GameSession
   alias Area51.LLM.Agent
   alias Area51.Web.Auth.Guardian
-  alias Area51.Web.Channels.ChannelInit
+  alias OpenTelemetry.Span
 
   require OpenTelemetry.Tracer
 
@@ -24,12 +24,14 @@ defmodule Area51.Web.SessionListChannel do
 
   @impl true
   def init(@channel_name, %{"token" => token}, socket) do
-    initial_state = ChannelInit.init(socket)
+    # Create a span for the lifetime of the channel, and pass alnog in the socket. The terminate/1 will the span
+    OpenTelemetry.Tracer.set_current_span(socket.assigns[:otel_span_ctx])
+    span_ctx = OpenTelemetry.Tracer.start_span("live-state.#{@channel_name}")
+    socket = socket |> assign(otel_span_ctx: span_ctx)
 
-    OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{} do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.init" do
       # Authenticate using JWT token
-      Guardian.verify_and_get_user_info(token)
-      |> case do
+      case Guardian.verify_and_get_user_info(token) do
         {:ok, user} ->
           :logger.info("Authenticated WebSocket connection for user: #{user.username}")
 
@@ -40,40 +42,50 @@ defmodule Area51.Web.SessionListChannel do
           sessions = GameSession.list_sessions_for_ui()
 
           state =
-            initial_state
-            |> Map.put(:sessions, sessions)
-            |> Map.put(:username, user.username)
-            |> Map.put(:error, nil)
-            |> Map.delete(:otel_span_ctx)
+            %{
+              sessions: sessions,
+              username: user.username,
+              error: nil
+            }
 
-          {:ok, state, assign(socket, username: user.username)}
+          socket_with_assigns =
+            socket
+            |> assign(username: user.username)
+            |> assign(otel_span_ctx: span_ctx)
+
+          {:ok, state, socket_with_assigns}
 
         {:error, reason} ->
           :logger.warning("WebSocket auth failed: #{inspect(reason)}")
+          OpenTelemetry.Span.end_span(span_ctx)
           :error
       end
     end
   end
 
   @impl true
-  def handle_event("refresh_sessions", _payload, state) do
-    updated_sessions = GameSession.list_sessions_for_ui()
-    {:noreply, %{state | sessions: updated_sessions}}
-  end
-
-  def handle_event("create_session", %{"topic" => topic}, state) do
-    case Agent.generate_mystery_with_topic(topic) do
-      {:ok, mystery_data} ->
-        GameSession.create_game_session(mystery_data)
-        updated_sessions = GameSession.list_sessions_for_ui()
-        {:noreply, %{state | sessions: updated_sessions, error: nil}}
-
-      {:error, _reason} ->
-        {:noreply, %{state | error: "Failed to create new session"}}
+  def handle_event("refresh_sessions" = event, _payload, state, socket) do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}" do
+      updated_sessions = GameSession.list_sessions_for_ui()
+      {:noreply, %{state | sessions: updated_sessions}}
     end
   end
 
-  def handle_event(unmatched_event, unmatched_event_payload, state) do
+  def handle_event("create_session" = event, %{"topic" => topic}, state, socket) do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}" do
+      case Agent.generate_mystery_with_topic(topic) do
+        {:ok, mystery_data} ->
+          GameSession.create_game_session(mystery_data)
+          updated_sessions = GameSession.list_sessions_for_ui()
+          {:noreply, %{state | sessions: updated_sessions, error: nil}}
+
+        {:error, _reason} ->
+          {:noreply, %{state | error: "Failed to create new session"}}
+      end
+    end
+  end
+
+  def handle_event(unmatched_event, unmatched_event_payload, state, _socket) do
     :logger.warning(
       "received an unmatched event: '#{unmatched_event}' with payload '#{inspect(unmatched_event_payload)}'"
     )
@@ -86,5 +98,11 @@ defmodule Area51.Web.SessionListChannel do
     # Refresh the session list when a new session is created
     updated_sessions = GameSession.list_sessions_for_ui()
     {:noreply, %{state | sessions: updated_sessions}}
+  end
+
+  @impl Phoenix.Channel
+  def terminate(_reason, socket) do
+    OpenTelemetry.Span.end_span(socket.assigns.otel_span_ctx)
+    :ok
   end
 end

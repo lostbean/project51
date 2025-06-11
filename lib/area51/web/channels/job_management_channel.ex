@@ -12,7 +12,6 @@ defmodule Area51.Web.JobManagementChannel do
 
   alias Area51.LLM.MysteryAgent
   alias Area51.Web.Auth.Guardian
-  alias Area51.Web.Channels.ChannelInit
 
   require Logger
   require OpenTelemetry.Tracer
@@ -23,9 +22,12 @@ defmodule Area51.Web.JobManagementChannel do
 
   @impl true
   def init(@channel_name, %{"token" => token}, socket) do
-    initial_state = ChannelInit.init(socket)
+    # Create a span for the lifetime of the channel, and pass alnog in the socket. The terminate/1 will the span
+    OpenTelemetry.Tracer.set_current_span(socket.assigns[:otel_span_ctx])
+    span_ctx = OpenTelemetry.Tracer.start_span("live-state.#{@channel_name}")
+    socket = socket |> assign(otel_span_ctx: span_ctx)
 
-    OpenTelemetry.Tracer.with_span "live-state.init.#{@channel_name}", %{} do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.init" do
       # Authenticate using JWT token
       Guardian.verify_and_get_user_info(token)
       |> case do
@@ -36,21 +38,26 @@ defmodule Area51.Web.JobManagementChannel do
           jobs = MysteryAgent.get_jobs_for_sidebar(user.external_id)
 
           state =
-            initial_state
-            |> Map.put(:running_jobs, jobs.running)
-            |> Map.put(:completed_jobs, jobs.completed)
-            |> Map.put(:user_id, user.external_id)
-            |> Map.put(:username, user.username)
-            |> Map.put(:error, nil)
-            |> Map.delete(:otel_span_ctx)
+            %{
+              running_jobs: jobs.running,
+              completed_jobs: jobs.completed,
+              user_id: user.external_id,
+              username: user.username,
+              error: nil
+            }
 
           # Subscribe to job updates for this user
           Phoenix.PubSub.subscribe(Area51.Data.PubSub, "job_updates:#{user.external_id}")
 
-          {:ok, state, assign(socket, user_id: user.external_id, username: user.username)}
+          socket_with_assigns =
+            socket
+            |> assign(user_id: user.external_id, username: user.username)
+
+          {:ok, state, socket_with_assigns}
 
         {:error, reason} ->
           Logger.warning("WebSocket auth failed for job management: #{inspect(reason)}")
+          OpenTelemetry.Span.end_span(span_ctx)
           :error
       end
     end
@@ -83,13 +90,12 @@ defmodule Area51.Web.JobManagementChannel do
   end
 
   @impl true
-  def handle_event("generate_mystery" = event, payload, state) do
-    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
+  def handle_event("generate_mystery" = event, payload, state, socket) do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}",
       attributes: [
         {:event, event},
         {:user_id, state.user_id}
-      ]
-    } do
+      ] do
       # Extract parameters for mystery generation
       theme = payload["theme"]
       difficulty = payload["difficulty"] || "medium"
@@ -137,14 +143,13 @@ defmodule Area51.Web.JobManagementChannel do
   end
 
   @impl true
-  def handle_event("cancel_job" = event, %{"job_id" => job_id}, state) do
-    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
+  def handle_event("cancel_job" = event, %{"job_id" => job_id}, state, socket) do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}",
       attributes: [
         {:event, event},
         {:user_id, state.user_id},
         {:job_id, job_id}
-      ]
-    } do
+      ] do
       case MysteryAgent.cancel_mystery_job(job_id) do
         {:ok, job} ->
           Logger.info("Cancelled mystery generation job", %{
@@ -174,14 +179,13 @@ defmodule Area51.Web.JobManagementChannel do
   end
 
   @impl true
-  def handle_event("get_job_status" = event, %{"job_id" => job_id}, state) do
-    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}", %{
+  def handle_event("get_job_status" = event, %{"job_id" => job_id}, state, socket) do
+    OpenTelemetry.Tracer.with_span "live-state.#{@channel_name}.event.#{event}",
       attributes: [
         {:event, event},
         {:user_id, state.user_id},
         {:job_id, job_id}
-      ]
-    } do
+      ] do
       case MysteryAgent.get_mystery_job_status(job_id) do
         {:ok, _job} ->
           {:noreply, state}
@@ -193,7 +197,7 @@ defmodule Area51.Web.JobManagementChannel do
   end
 
   @impl true
-  def handle_event(unmatched_event, unmatched_event_payload, _state) do
+  def handle_event(unmatched_event, unmatched_event_payload, _state, _socket) do
     Logger.warning(
       "Received unmatched event in job management: '#{unmatched_event}' with payload '#{inspect(unmatched_event_payload)}'"
     )
@@ -210,5 +214,11 @@ defmodule Area51.Web.JobManagementChannel do
       end)
     end)
     |> Enum.map_join("; ", fn {field, errors} -> "#{field}: #{Enum.join(errors, ", ")}" end)
+  end
+
+  @impl Phoenix.Channel
+  def terminate(_reason, socket) do
+    OpenTelemetry.Span.end_span(socket.assigns.otel_span_ctx)
+    :ok
   end
 end

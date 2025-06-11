@@ -85,11 +85,12 @@ defmodule Area51.MixProject do
       {:opentelemetry_bandit, "~> 0.2.0"},
       {:opentelemetry_ecto, "~> 1.2"},
       {:opentelemetry_process_propagator, "~> 0.3"},
+      {:opentelemetry_oban, "~> 1.1"},
 
       # Also in extra_applications
       {:opentelemetry, "~> 1.5"},
       {:opentelemetry_api, "~> 1.4"},
-      {:opentelemetry_semantic_conventions, "~> 1.27"},
+      {:opentelemetry_semantic_conventions, "~> 1.27", override: true},
       {:tls_certificate_check, "~> 1.27"},
       {:prom_ex, "~> 1.11.0"},
 

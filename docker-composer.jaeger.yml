@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.51 # At least 1.35 if you want to have enabled collector
+    container_name: jaeger
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+    ports: # Some ports are optional or deprecated, but we still let them be here as it's a general snippet
+      - "16686:16686" # query serve frontend (Jaeger UI)
+      - "4317:4317" # OTLP collector grpc
+      - "4318:4318" # OTLP collector http

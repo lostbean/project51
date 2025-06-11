@@ -90,7 +90,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
             ])
 
             Tracer.set_status(:ok, "success")
-            OpenTelemetry.Tracer.end_span(span_ctx)
+            OpenTelemetry.Span.end_span(span_ctx)
 
             {:ok, result}
 
@@ -122,7 +122,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
             ])
 
             Tracer.set_status(:error, error_info.message)
-            OpenTelemetry.Tracer.end_span(span_ctx)
+            OpenTelemetry.Span.end_span(span_ctx)
 
             {:error, error}
 
@@ -150,7 +150,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
             ])
 
             Tracer.set_status(:ok, "halted")
-            OpenTelemetry.Tracer.end_span(span_ctx)
+            OpenTelemetry.Span.end_span(span_ctx)
 
             # clean up any non-reactor-managed resources or modify the context
             # for later re-use by a future init/1 callback.
@@ -367,7 +367,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
         Tracer.set_attributes(attributes)
     end
 
-    Tracer.end_span(span_ctx)
+    OpenTelemetry.Span.end_span(span_ctx)
   end
 
   defp build_reactor_attributes(reactor_name, context) do

@@ -55,15 +55,14 @@ defmodule Area51.Web.SessionListChannelTest do
 
   describe "joining the channel" do
     test "authenticates and sets initial state", %{socket: socket} do
-      expected_initial_state =
-        build_state(%{
-          username: @user.username,
-          sessions: [
-            %{id: 1, title: "Mystery at the Mansion", created_at: "2025-05-01T12:00:00Z"},
-            %{id: 2, title: "The Alien Conspiracy", created_at: "2025-05-02T14:30:00Z"}
-          ],
-          error: nil
-        })
+      expected_initial_state = %{
+        username: @user.username,
+        sessions: [
+          %{id: 1, title: "Mystery at the Mansion", created_at: "2025-05-01T12:00:00Z"},
+          %{id: 2, title: "The Alien Conspiracy", created_at: "2025-05-02T14:30:00Z"}
+        ],
+        error: nil
+      }
 
       {_socket, _state} =
         join_and_assert_initial_state(
@@ -79,15 +78,14 @@ defmodule Area51.Web.SessionListChannelTest do
 
   describe "handling events" do
     setup %{socket: socket} do
-      expected_initial_state =
-        build_state(%{
-          username: @user.username,
-          sessions: [
-            %{id: 1, title: "Mystery at the Mansion", created_at: "2025-05-01T12:00:00Z"},
-            %{id: 2, title: "The Alien Conspiracy", created_at: "2025-05-02T14:30:00Z"}
-          ],
-          error: nil
-        })
+      expected_initial_state = %{
+        username: @user.username,
+        sessions: [
+          %{id: 1, title: "Mystery at the Mansion", created_at: "2025-05-01T12:00:00Z"},
+          %{id: 2, title: "The Alien Conspiracy", created_at: "2025-05-02T14:30:00Z"}
+        ],
+        error: nil
+      }
 
       {joined_socket, _state} =
         join_and_assert_initial_state(

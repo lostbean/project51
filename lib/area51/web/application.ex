@@ -51,6 +51,8 @@ defmodule Area51.Web.Application do
     :ok = OpentelemetryPhoenix.setup(adapter: :bandit)
     # Initialize Ecto instrumentation
     :ok = OpentelemetryEcto.setup([Area51.Data.Repo])
+    # Initialize Oban instrumentation
+    :ok = OpentelemetryOban.setup()
 
     Logger.info(
       "OpenTelemetry configured with exporter: #{inspect(Application.get_env(:opentelemetry, :traces_exporter))}"
