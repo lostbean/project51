@@ -2,10 +2,11 @@ defmodule Area51.Web.LiveStateSocket do
   use Phoenix.Socket
 
   require OpenTelemetry.Tracer
-  alias OpenTelemetry.Tracer
+
   alias Area51.Web.InvestigationChannel
   alias Area51.Web.JobManagementChannel
   alias Area51.Web.SessionListChannel
+  alias OpenTelemetry.Tracer
 
   channel(InvestigationChannel.channel_name(), InvestigationChannel)
   channel(SessionListChannel.channel_name(), SessionListChannel)

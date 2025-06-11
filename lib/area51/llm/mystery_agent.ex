@@ -8,9 +8,9 @@ defmodule Area51.LLM.MysteryAgent do
   asynchronous generation enqueues jobs with Oban for background processing.
   """
 
+  alias Area51.Jobs.MysteryGenerationJob
   alias Area51.LLM.Reactors.MysteryGenerationReactor
   alias Area51.LLM.Schemas.Mystery
-  alias Area51.Jobs.MysteryGenerationJob
 
   require Logger
 
@@ -26,7 +26,7 @@ defmodule Area51.LLM.MysteryAgent do
   @doc """
   Generate a new mystery for an Area 51 investigation
   """
-  def generate_mystery() do
+  def generate_mystery do
     generate_mystery(nil, [])
   end
 

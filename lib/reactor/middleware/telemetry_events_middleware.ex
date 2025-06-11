@@ -222,7 +222,7 @@ defmodule Reactor.Middleware.TelemetryEventsMiddleware do
     )
   end
 
-  def list_all_event_names() do
+  def list_all_event_names do
     [
       @complete_events,
       @error_events,

@@ -132,19 +132,8 @@ defmodule Area51.Jobs.MysteryGenerationJob do
         update_job_status(job_id, :cancelled)
 
       oban_job_id ->
-        # Try to cancel the Oban job
-        case Oban.cancel_job(oban_job_id) do
-          :ok ->
-            update_job_status(job_id, :cancelled)
-
-          {:error, :not_found} ->
-            # Job might have already completed
-            update_job_status(job_id, :cancelled)
-
-          error ->
-            Logger.warning("Failed to cancel Oban job #{oban_job_id}: #{inspect(error)}")
-            update_job_status(job_id, :cancelled)
-        end
+        :ok = Oban.cancel_job(oban_job_id)
+        update_job_status(job_id, :cancelled)
     end
   end
 

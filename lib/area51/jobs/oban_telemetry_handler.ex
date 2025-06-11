@@ -136,11 +136,15 @@ defmodule Area51.Jobs.ObanTelemetryHandler do
   defp find_handler_for_job(oban_job) do
     Enum.find_value(@job_handlers, fn handler_module ->
       if handler_module.worker_module() == oban_job.worker do
-        case handler_module.find_job_from_oban(oban_job) do
-          nil -> nil
-          job_record -> {handler_module, job_record}
-        end
+        find_job_record(handler_module, oban_job)
       end
     end)
+  end
+
+  defp find_job_record(handler_module, oban_job) do
+    case handler_module.find_job_from_oban(oban_job) do
+      nil -> nil
+      job_record -> {handler_module, job_record}
+    end
   end
 end

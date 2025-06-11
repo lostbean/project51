@@ -103,7 +103,7 @@ defmodule Area51.Web.InvestigationChannel do
   defp process_and_store_clues(clues, game_session_id) do
     if length(clues) > 0 do
       Enum.map(clues, fn clue_data ->
-        Clue.add_clue(game_session_id, clue_data["content"])
+        Clue.add_clue(game_session_id, clue_data.content)
         |> Clue.data_to_core()
       end)
     else

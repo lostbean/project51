@@ -6,6 +6,7 @@ defmodule Area51.Web.Application do
   use Application
   require Logger
 
+  alias Area51.Jobs.ObanTelemetryHandler
   alias Area51.Web.Endpoint
   @impl true
   def start(_type, _args) do
@@ -13,7 +14,7 @@ defmodule Area51.Web.Application do
     setup_opentelemetry()
 
     # Attach Oban telemetry handlers
-    Area51.Jobs.ObanTelemetryHandler.attach_handlers()
+    ObanTelemetryHandler.attach_handlers()
 
     children = [
       Area51.Data.Repo,

@@ -7,10 +7,10 @@ defmodule Area51.LLM.Workers.MysteryGenerationWorker do
   """
   use Oban.Worker, queue: :mystery_generation, max_attempts: 3
 
+  alias Area51.Data.GameSession
+  alias Area51.Jobs.MysteryGenerationJob
   alias Area51.LLM.Reactors.MysteryGenerationReactor
   alias Area51.LLM.Schemas.Mystery
-  alias Area51.Jobs.MysteryGenerationJob
-  alias Area51.Data.GameSession
 
   require Logger
 

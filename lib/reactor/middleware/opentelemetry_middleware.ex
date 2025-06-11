@@ -54,29 +54,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
             start_time = System.monotonic_time()
 
             # Check if external OpenTelemetry context is provided
-            {ctx, span_ctx} =
-              case context do
-                %{otel_ctx: external_ctx, otel_span_ctx: external_span} ->
-                  # Use external context as parent
-                  OpenTelemetry.Ctx.attach(external_ctx)
-                  OpenTelemetry.Tracer.set_current_span(external_span)
-
-                  span_name = "reactor.#{reactor_name}.run"
-                  span_attributes = build_reactor_attributes(reactor_name, context)
-                  child_span = Tracer.start_span(span_name, %{attributes: span_attributes})
-                  current_ctx = OpenTelemetry.Ctx.get_current()
-
-                  {current_ctx, child_span}
-
-                _ ->
-                  # Create root span
-                  span_name = "reactor.#{reactor_name}.run"
-                  span_attributes = build_reactor_attributes(reactor_name, context)
-                  span_ctx = Tracer.start_span(span_name, %{attributes: span_attributes})
-                  ctx = OpenTelemetry.Ctx.get_current()
-
-                  {ctx, span_ctx}
-              end
+            {ctx, span_ctx} = create_reactor_span(reactor_name, context)
 
             updated_context =
               context
@@ -174,7 +152,8 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
             Tracer.set_status(:ok, "halted")
             OpenTelemetry.Tracer.end_span(span_ctx)
 
-            # clean up any non-reactor-managed resources or modify the context for later re-use by a future init/1 callback.
+            # clean up any non-reactor-managed resources or modify the context
+            # for later re-use by a future init/1 callback.
             updated_context =
               context
               |> Map.delete(:otel_ctx)
@@ -183,7 +162,7 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
 
             {:ok, updated_context}
 
-          false ->
+          _ ->
             updated_context =
               context
               |> Map.delete(:otel_ctx)
@@ -211,6 +190,31 @@ defmodule Reactor.Middleware.OpenTelemetryMiddleware do
   end
 
   # Private functions
+  defp create_reactor_span(reactor_name, context) do
+    case context do
+      %{otel_ctx: external_ctx, otel_span_ctx: external_span} ->
+        # Use external context as parent
+        OpenTelemetry.Ctx.attach(external_ctx)
+        OpenTelemetry.Tracer.set_current_span(external_span)
+
+        span_name = "reactor.#{reactor_name}.run"
+        span_attributes = build_reactor_attributes(reactor_name, context)
+        child_span = Tracer.start_span(span_name, %{attributes: span_attributes})
+        current_ctx = OpenTelemetry.Ctx.get_current()
+
+        {current_ctx, child_span}
+
+      _ ->
+        # Create root span
+        span_name = "reactor.#{reactor_name}.run"
+        span_attributes = build_reactor_attributes(reactor_name, context)
+        span_ctx = Tracer.start_span(span_name, %{attributes: span_attributes})
+        ctx = OpenTelemetry.Ctx.get_current()
+
+        {ctx, span_ctx}
+    end
+  end
+
   defp process_otel_event_type(event_type, step, context) do
     case event_type do
       type when is_atom(type) -> handle_step_event(type, step, context, nil)
