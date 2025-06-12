@@ -148,6 +148,27 @@ You are an expert in Elixir, Phoenix, PostgreSQL, JavaScript, TypeScript, React.
 - **State-driven UX**: Let job completion automatically guide user to created content while maintaining ability to navigate back
 - **Cross-channel coordination**: Job management and entity list channels should coordinate for seamless user experience
 
+# OpenTelemetry Tracing
+
+- **Comprehensive distributed tracing** is implemented across the entire application stack
+- **LiveState channel tracing**:
+  - Each channel creates a span in `init/3` that lives for the channel's lifetime
+  - Individual events are wrapped in child spans with proper attributes
+  - Always end spans in `terminate/2` callback for proper cleanup
+  - Pass OpenTelemetry context through socket assigns (`otel_span_ctx`)
+- **Reactor workflow tracing**:
+  - Reactors inherit external context via `otel_span_ctx` option in `Reactor.run/3`
+  - OpenTelemetryMiddleware creates parent-child span relationships
+  - Each step execution is automatically traced with detailed attributes
+- **Context propagation patterns**:
+  - LiveState channels → Agent functions → Reactor workflows → Individual steps
+  - Use `otel_span_ctx: span_ctx` option to pass context between layers
+  - Always attach context before creating child spans for proper hierarchy
+- **Observability infrastructure**:
+  - Use `docker-compose.observability.yml` for full stack (Tempo, Grafana, Prometheus, Loki)
+  - Use `docker-composer.jaeger.yml` for simple Jaeger-only setup
+  - Traces export to OTLP endpoints on ports 4317 (gRPC) and 4318 (HTTP)
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
